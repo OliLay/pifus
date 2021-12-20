@@ -10,14 +10,14 @@
 /** Define this to the index of the windows network adapter to use */
 #define PACKET_LIB_ADAPTER_NR         1
 /** Define this to the GUID of the windows network adapter to use
- * or NOT define this if you want PACKET_LIB_ADAPTER_NR to be used */
+ * or NOT define this if you want PACKET_LIB_ADAPTER_NR to be used */ 
 /*#define PACKET_LIB_ADAPTER_GUID       "00000000-0000-0000-0000-000000000000"*/
 /*#define PACKET_LIB_GET_ADAPTER_NETADDRESS(addr) IP4_ADDR((addr), 192,168,1,0)*/
 /*#define PACKET_LIB_QUIET*/
 
 /* If these 2 are not defined, the corresponding config setting is used */
-/* #define USE_DHCP    0 */
-/* #define USE_AUTOIP  0 */
+#define USE_DHCP    0
+#define USE_AUTOIP  0
 
 /* #define USE_PCAPIF 1 */
 #define LWIP_PORT_INIT_IPADDR(addr)   IP4_ADDR((addr), 192,168,1,200)
@@ -70,8 +70,8 @@
 #define LWIP_UDPECHO_APP              0
 #define LWIP_LWIPERF_APP              0
 
-#define USE_DHCP    0
-#define USE_AUTOIP  0
+/*#define USE_DHCP    1*/
+/*#define USE_AUTOIP  1*/
 
 /* define this to your custom application-init function */
 /* #define LWIP_APP_INIT my_app_init() */
