@@ -33,7 +33,7 @@
 #CC=clang
 CCDEP?=$(CC)
 
-CFLAGS+=-g -DLWIP_DEBUG -Wall -pedantic -Werror \
+CFLAGS+=-g -DLWIP_DEBUG -Wall -pedantic \
 	-Wparentheses -Wsequence-point -Wswitch-default \
 	-Wextra -Wundef -Wshadow -Wpointer-arith -Wcast-qual \
 	-Wc++-compat -Wwrite-strings -Wold-style-definition -Wcast-align \
