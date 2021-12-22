@@ -39,10 +39,10 @@
 #define LWIP_IPV4                  1
 #define LWIP_IPV6                  1
 
-#define NO_SYS                     0
-#define LWIP_SOCKET                (NO_SYS==0)
-#define LWIP_NETCONN               (NO_SYS==0)
-#define LWIP_NETIF_API             (NO_SYS==0)
+#define NO_SYS                     1
+#define LWIP_SOCKET                0
+#define LWIP_NETCONN               0
+#define LWIP_NETIF_API             0
 
 #define LWIP_IGMP                  LWIP_IPV4
 #define LWIP_ICMP                  LWIP_IPV4
@@ -146,14 +146,14 @@ a lot of data that needs to be copied, this should be set high. */
 /* The following four are used only with the sequential API and can be
    set to 0 if the application only will use the raw API. */
 /* MEMP_NUM_NETBUF: the number of struct netbufs. */
-#define MEMP_NUM_NETBUF         2
+#define MEMP_NUM_NETBUF         0
 /* MEMP_NUM_NETCONN: the number of struct netconns. */
-#define MEMP_NUM_NETCONN        12
+#define MEMP_NUM_NETCONN        0
 /* MEMP_NUM_TCPIP_MSG_*: the number of struct tcpip_msg, which is used
    for sequential API communication and incoming packets. Used in
    src/api/tcpip.c. */
-#define MEMP_NUM_TCPIP_MSG_API   16
-#define MEMP_NUM_TCPIP_MSG_INPKT 16
+#define MEMP_NUM_TCPIP_MSG_API  0
+#define MEMP_NUM_TCPIP_MSG_INPKT 0
 
 
 /* ---------- Pbuf options ---------- */

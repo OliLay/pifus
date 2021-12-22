@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD_REQUIRED TRUE)
 
 set(NEEDED_SOURCES
    ${CMAKE_CURRENT_LIST_DIR}/default_netif.c
-   ${CMAKE_CURRENT_LIST_DIR}/init.c
+   ${CMAKE_CURRENT_LIST_DIR}/init_nosys.c
 )
 
 #add_subdirectory(reader) TODO: add
