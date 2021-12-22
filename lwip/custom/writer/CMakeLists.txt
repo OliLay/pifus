@@ -11,7 +11,7 @@ include(${LWIP_DIR}/src/Filelists.cmake)
 #include(${LWIP_DIR}/contrib/Filelists.cmake) TODO: check if needed
 include(${LWIP_DIR}/contrib/ports/unix/Filelists.cmake)
 
-add_executable(writer ${CMAKE_CURRENT_LIST_DIR}/src/writer.c) # TODO: check if needed: default_netif.c)
+add_executable(writer ${CMAKE_CURRENT_LIST_DIR}/src/writer.c ${NEEDED_SOURCES})
 target_include_directories(writer PRIVATE ${LWIP_INCLUDE_DIRS})
 target_compile_options(writer PRIVATE ${LWIP_COMPILER_FLAGS})
 target_compile_definitions(writer PRIVATE ${LWIP_DEFINITIONS} ${LWIP_MBEDTLS_DEFINITIONS})
