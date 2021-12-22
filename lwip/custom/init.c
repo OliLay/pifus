@@ -85,7 +85,7 @@ static void init_callback(void *arg)
     /* init network interfaces */
     init_iface();
 
-    // TODO: init is complete here. may have to call function of module that called this here (e.g. writer!)
+    /* init is complete, notify app */
     init_finished_callback();
 
     sys_sem_signal(init_sem);
