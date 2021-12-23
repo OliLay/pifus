@@ -10,7 +10,7 @@
 #define PING_USE_SOCKETS  0
 #endif
 
-void ping_init(const ip_addr_t* ping_addr);
+void ping_init(void);
 
 #if !PING_USE_SOCKETS
 void ping_send_now(void);

@@ -73,7 +73,7 @@
  * You can also use PRECONFIGURED_TAPIF environment variable to do so.
  */
 #ifndef DEVTAP_DEFAULT_IF
-#define DEVTAP_DEFAULT_IF "tap0"
+#define DEVTAP_DEFAULT_IF "tap1"
 #endif
 #ifndef DEVTAP
 #define DEVTAP "/dev/net/tun"
@@ -120,6 +120,8 @@ low_level_init(struct netif *netif)
 #endif /* LWIP_IPV4 */
   char *preconfigured_tapif = getenv("PRECONFIGURED_TAPIF");
 
+  printf("Preconfigured tapif: %s\n", preconfigured_tapif);
+
   tapif = (struct tapif *)netif->state;
 
   /* Obtain MAC address from network interface. */
@@ -130,7 +132,12 @@ low_level_init(struct netif *netif)
   netif->hwaddr[2] = 0x34;
   netif->hwaddr[3] = 0x56;
   netif->hwaddr[4] = 0x78;
-  netif->hwaddr[5] = 0xab;
+  if (preconfigured_tapif != NULL && strcmp(preconfigured_tapif, "tap0") == 0) {
+    netif->hwaddr[5] = 0xab;
+  } else {
+    netif->hwaddr[5] = 0xac;
+  } 
+
   netif->hwaddr_len = 6;
 
   /* device capabilities */

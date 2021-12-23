@@ -382,15 +382,26 @@ ping_send_now(void)
 #endif /* PING_USE_SOCKETS */
 
 void
-ping_init(const ip_addr_t* ping_addr)
+ping_init(void)
 {
-  ping_target = ping_addr;
-
 #if PING_USE_SOCKETS
   sys_thread_new("ping_thread", ping_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 #else /* PING_USE_SOCKETS */
   ping_raw_init();
 #endif /* PING_USE_SOCKETS */
+}
+
+int main(int argc, char *argv[])
+{
+    LWIP_UNUSED_ARG(argc);
+    LWIP_UNUSED_ARG(argv);
+
+    ping_target = (ip_addr_t *)malloc(sizeof(ip_addr_t));
+    ipaddr_aton("192.168.1.1", ping_target);
+
+    app_init_lwip(&ping_init, "192.168.1.200", "192.168.1.1", "255.255.255.0");
+
+    return 0;
 }
 
 #endif /* LWIP_RAW */

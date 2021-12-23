@@ -52,23 +52,14 @@ link_callback(struct netif *state_netif)
     }
 }
 
-static void init_iface(void)
+static void init_iface(ip4_addr_t* ipaddr, ip4_addr_t* netmask, ip4_addr_t* gw)
 {
-    ip4_addr_t ipaddr, netmask, gw;
-    ip4_addr_set_zero(&gw);
-    ip4_addr_set_zero(&ipaddr);
-    ip4_addr_set_zero(&netmask);
-
-    // TODO: make configurable
-    IP4_ADDR(&ipaddr, 192,168,1,200);
-    IP4_ADDR(&gw, 192,168,1,1);
-    IP4_ADDR(&netmask, 255,255,255,0);
-    printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
+    printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(ipaddr));
 
     /* init randomizer again (seed per thread) */
     srand((unsigned int)time(NULL));
 
-    init_default_netif(&ipaddr, &netmask, &gw);
+    init_default_netif(ipaddr, netmask, gw);
 
     netif_set_status_callback(netif_default, status_callback);
     netif_set_link_callback(netif_default, link_callback);
@@ -85,19 +76,35 @@ static void loop(void)
         sys_check_timeouts();
 
         default_netif_poll();
+
+        // IDEA: app custom loop callback could go in here.
     }
 
     default_netif_shutdown();
 }
 
-void app_init_lwip(void (*app_callback)(void))
+/**
+ * @brief Initializes lwIP and runs main loop. Does _not_ return.
+ * 
+ * @param app_callback Callback that is invoked when stack initialization is finished.
+ */
+void app_init_lwip(void (*app_callback)(void), const char *ip_addr_str, const char *gateay_addr_str, const char *netmask_str)
 {
     init_finished_callback = app_callback;
 
     setvbuf(stdout, NULL, _IONBF, 0);
-    
+
     lwip_init();
-    init_iface();
+
+    ip4_addr_t* ip_addr = (ip4_addr_t *)malloc(sizeof(ip4_addr_t));
+    ip4_addr_t* gateway_addr = (ip4_addr_t *)malloc(sizeof(ip4_addr_t));
+    ip4_addr_t* netmask = (ip4_addr_t *)malloc(sizeof(ip4_addr_t));
+
+    ip4addr_aton(ip_addr_str, ip_addr);
+    ip4addr_aton(gateay_addr_str, gateway_addr);
+    ip4addr_aton(netmask_str, netmask);
+
+    init_iface(ip_addr, netmask, gateway_addr);
 
     init_finished_callback();
 
