@@ -31,12 +31,12 @@ void writer_send_now(void *arg)
     LWIP_UNUSED_ARG(arg);
     err_t result;
 
-    const char *data = "Sepp ist so toll!\n";
-    result = tcp_write(pcb, data, strlen(data), 0);
+    const char *data = "Group42 ist fast coronafrei!";
+    result = tcp_write(pcb, data, strlen(data) + 1, 0);
 
     if (result == ERR_OK)
     {
-        printf("Sent data: '%s'", data);
+        printf("Sent data: '%s'\n", data);
         result = tcp_output(pcb);
 
         // create one-shot timer again!
@@ -79,7 +79,7 @@ void writer_init(void)
     else
     {
         err_t result;
-        result = tcp_bind(pcb, IPADDR_TYPE_V4, 13);
+        result = tcp_bind(pcb, IPADDR_TYPE_V4, 50113);
 
         if (result == ERR_OK)
         {

@@ -53,6 +53,9 @@
 #include "lwip/inet_chksum.h"
 #include "lwip/prot/ip4.h"
 
+/* local includes */
+#include "init.h"
+
 #if PING_USE_SOCKETS
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
@@ -93,7 +96,7 @@
 #endif
 
 /* ping variables */
-static const ip_addr_t* ping_target;
+static ip_addr_t* ping_target;
 static u16_t ping_seq_num;
 #ifdef LWIP_DEBUG
 static u32_t ping_time;
@@ -397,7 +400,7 @@ int main(int argc, char *argv[])
     LWIP_UNUSED_ARG(argv);
 
     ping_target = (ip_addr_t *)malloc(sizeof(ip_addr_t));
-    ipaddr_aton("192.168.1.1", ping_target);
+    ipaddr_aton("192.168.1.201", ping_target);
 
     app_init_lwip(&ping_init, "192.168.1.200", "192.168.1.1", "255.255.255.0");
 

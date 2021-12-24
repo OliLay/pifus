@@ -23,4 +23,7 @@ sudo brctl addif lwipbridge tap0
 sudo brctl addif lwipbridge tap1
 
 sudo ip addr add 192.168.1.1/24 dev lwipbridge
+
 sudo ip link set dev lwipbridge up
+
+sudo iptables -A FORWARD -p all -i lwipbridge -j ACCEPT # else L3 won't let the taps communicate with each other

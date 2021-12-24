@@ -32,14 +32,13 @@ err_t reader_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
             printf("Remote closed connection!\n");
             return ERR_OK;
         } else {
-            printf("Received packet: %iB total length, %iB pbuf length. Payload:\n", p->tot_len, p->len);
+            printf("Received packet: %iB total length, %iB pbuf length. Payload: ", p->tot_len, p->len);
 
             char str[p->len];
             memcpy(str, p->payload, p->len);
-            tcp_recved(tpcb, p->len);
+            printf("%s \n", str);
 
-            
-            printf(" --- %s", str);
+            tcp_recved(tpcb, p->len);
         }
     } else {
         reader_handle_error("reader_recv: err param");
