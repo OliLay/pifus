@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     LWIP_UNUSED_ARG(argc);
     LWIP_UNUSED_ARG(argv);
 
-    app_init_lwip(&reader_init, "192.168.1.201", "192.168.1.1", "255.255.255.0");
+    run_lwip(&reader_init, NULL, "192.168.1.201", "192.168.1.1", "255.255.255.0");
 
     return 0;
 }

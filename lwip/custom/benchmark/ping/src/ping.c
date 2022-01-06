@@ -402,7 +402,7 @@ int main(int argc, char *argv[])
     ping_target = (ip_addr_t *)malloc(sizeof(ip_addr_t));
     ipaddr_aton("192.168.1.201", ping_target);
 
-    app_init_lwip(&ping_init, "192.168.1.200", "192.168.1.1", "255.255.255.0");
+    run_lwip(&ping_init, NULL, "192.168.1.200", "192.168.1.1", "255.255.255.0");
 
     return 0;
 }

@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
     reader_addr = (ip_addr_t *)malloc(sizeof(ip_addr_t));
     ipaddr_aton("192.168.1.201", reader_addr);
 
-    app_init_lwip(&writer_init, "192.168.1.200", "192.168.1.1", "255.255.255.0");
+    run_lwip(&writer_init, NULL, "192.168.1.200", "192.168.1.1", "255.255.255.0");
 
     return 0;
 }

@@ -52,14 +52,20 @@ link_callback(struct netif *state_netif)
     }
 }
 
-static void init_iface(ip4_addr_t* ipaddr, ip4_addr_t* netmask, ip4_addr_t* gw)
+static void init_iface(void)
 {
-    printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(ipaddr));
+    ip4_addr_t ipaddr, netmask, gw;
+    ip4_addr_set_zero(&gw);
+    ip4_addr_set_zero(&ipaddr);
+    ip4_addr_set_zero(&netmask);
 
-    /* init randomizer again (seed per thread) */
-    srand((unsigned int)time(NULL));
+    // TODO: make configurable
+    IP4_ADDR(&ipaddr, 192,168,1,200);
+    IP4_ADDR(&gw, 192,168,1,1);
+    IP4_ADDR(&netmask, 255,255,255,0);
+    printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 
-    init_default_netif(ipaddr, netmask, gw);
+    init_default_netif(&ipaddr, &netmask, &gw);
 
     netif_set_status_callback(netif_default, status_callback);
     netif_set_link_callback(netif_default, link_callback);
@@ -67,46 +73,53 @@ static void init_iface(ip4_addr_t* ipaddr, ip4_addr_t* netmask, ip4_addr_t* gw)
     netif_set_up(netif_default);
 }
 
+static void init_callback(void *arg)
+{ /* remove compiler warning */
+    sys_sem_t *init_sem;
+    LWIP_ASSERT("arg != NULL", arg != NULL);
+    init_sem = (sys_sem_t *)arg;
+
+    /* init randomizer again (seed per thread) */
+    srand((unsigned int)time(NULL));
+
+    /* init network interfaces */
+    init_iface();
+
+    /* init is complete, notify app */
+    init_finished_callback();
+
+    sys_sem_signal(init_sem);
+}
+
+/* MAIN LOOP for driver update */
 static void loop(void)
 {
-    printf("Starting main loop...\n");
+    printf("Starting loop...\n");
 
     while (true)
     {
-        sys_check_timeouts();
-
         default_netif_poll();
-
-        // IDEA: app custom loop callback could go in here.
     }
 
     default_netif_shutdown();
 }
 
-/**
- * @brief Initializes lwIP and runs main loop. Does _not_ return.
- * 
- * @param app_callback Callback that is invoked when stack initialization is finished.
- */
-void app_init_lwip(void (*app_callback)(void), const char *ip_addr_str, const char *gateay_addr_str, const char *netmask_str)
+void run_lwip(void (*app_callback)(void))
 {
     init_finished_callback = app_callback;
 
     setvbuf(stdout, NULL, _IONBF, 0);
+    
+    err_t err;
+    sys_sem_t init_sem;
 
-    lwip_init();
+    err = sys_sem_new(&init_sem, 0);
+    LWIP_ASSERT("failed to create init_sem", err == ERR_OK);
+    LWIP_UNUSED_ARG(err);
+    tcpip_init(init_callback, &init_sem);
 
-    ip4_addr_t* ip_addr = (ip4_addr_t *)malloc(sizeof(ip4_addr_t));
-    ip4_addr_t* gateway_addr = (ip4_addr_t *)malloc(sizeof(ip4_addr_t));
-    ip4_addr_t* netmask = (ip4_addr_t *)malloc(sizeof(ip4_addr_t));
-
-    ip4addr_aton(ip_addr_str, ip_addr);
-    ip4addr_aton(gateay_addr_str, gateway_addr);
-    ip4addr_aton(netmask_str, netmask);
-
-    init_iface(ip_addr, netmask, gateway_addr);
-
-    init_finished_callback();
+    sys_sem_wait(&init_sem);
+    sys_sem_free(&init_sem);
 
     loop();
 }
