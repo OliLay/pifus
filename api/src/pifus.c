@@ -24,7 +24,7 @@
  * @brief Calls shmem_open with next available app id
  * @return fd for the shared memory
  */
-int create_app_shmem_region(void) {
+int create_app_shm_region(void) {
     char* shm_name;
     uint8_t app_number = 0;
 
@@ -50,21 +50,26 @@ int create_app_shmem_region(void) {
     }
 }
 
-void map_app_shmem_region(int fd) {
+/**
+ * @brief Maps the app's shared memory into the process memory space.
+ * 
+ * @param fd The fd of the app's shared memory.
+ */
+void map_app_shm_region(int fd) {
     int err = ftruncate(fd, SHM_APP_SIZE);
     if (err < 0) {
         printf("pifus: ftruncate failed with code %i\n", errno);
         exit(1);
     }
 
-    int* app_shmem_ptr = (int *) mmap(NULL, SHM_APP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    state.app_shm_ptr = (int *) mmap(NULL, SHM_APP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-    if (app_shmem_ptr == MAP_FAILED) {
-        printf("pifus: mmap failed with code %i\n", *app_shmem_ptr);
+    if (state.app_shm_ptr == MAP_FAILED) {
+        printf("pifus: mmap failed with code %i\n", *(state.app_shm_ptr));
     }
 }
 
 void pifus_initialize(void) { 
-    int app_shmem_fd = create_app_shmem_region(); 
-    map_app_shmem_region(app_shmem_fd);
+    int app_shmem_fd = create_app_shm_region(); 
+    map_app_shm_region(app_shmem_fd);
 }
