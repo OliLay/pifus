@@ -11,7 +11,4 @@ set(NEEDED_SOURCES
    ${LWIP_DIR}/contrib/ports/unix/port/sys_arch.c # somehow needed, else one needs an explicit sys_now() call, else linking fails?!
 )
 
-add_subdirectory(ping)
-
-add_subdirectory(reader)
-add_subdirectory(writer)
+add_subdirectory(benchmark)
