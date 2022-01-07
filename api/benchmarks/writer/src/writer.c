@@ -10,4 +10,6 @@ int main(int argc, char *argv[])
     printf("Starting pifus_writer...\n");
 
     pifus_initialize();
+
+    return 0;
 }
