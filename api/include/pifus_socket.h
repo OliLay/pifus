@@ -6,7 +6,11 @@
  * Holds pointers to squeue and cqueue.
  */
 struct pifus_socket {
-    // TODO
+    int* shmem_ptr;
+    int* squeue_ptr;
+    int* squeue_buffer_ptr;
+    int* cqueue_ptr;
+    int* cqueue_buffer_ptr;
 };
 
 /**

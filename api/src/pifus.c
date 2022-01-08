@@ -14,8 +14,9 @@
 
 /* local includes */
 #include "pifus.h"
-#include "pifus_socket.h"
 #include "pifus_constants.h"
+#include "pifus_shmem.h"
+#include "pifus_socket.h"
 
 struct pifus_state state;
 
@@ -31,7 +32,7 @@ int create_app_shm_region(void) {
     while (true) {
         asprintf(&shm_name, "%s%u", SHM_APP_NAME_PREFIX, app_number);
 
-        fd = shm_open(shm_name, O_RDWR | O_CREAT | O_EXCL, SHM_MODE);
+        fd = shm_create_region(shm_name);
 
         if (fd >= 0) {
             state.app_number = app_number;
@@ -57,23 +58,11 @@ int create_app_shm_region(void) {
  *
  * @param fd The fd of the app's shared memory.
  */
-void map_app_shm_region(int fd) {
-    int err = ftruncate(fd, SHM_APP_SIZE);
-    if (err < 0) {
-        printf("pifus: ftruncate failed with code %i\n", errno);
-        exit(1);
-    }
-
-    state.app_shm_ptr = (int*)mmap(NULL, SHM_APP_SIZE, PROT_READ | PROT_WRITE,
-                                   MAP_SHARED, fd, 0);
-
-    if (state.app_shm_ptr == MAP_FAILED) {
-        printf("pifus: mmap failed with code %i\n", *(state.app_shm_ptr));
-        exit(1);
-    }
-}
+void map_app_region(int fd) { state.app_shm_ptr = shm_map_region(fd, SHM_APP_SIZE); }
 
 void pifus_initialize(void) {
     int app_shmem_fd = create_app_shm_region();
-    map_app_shm_region(app_shmem_fd);
+    map_app_region(app_shmem_fd);
 }
+
+// TODO: pifus_shutdown
