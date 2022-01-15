@@ -14,8 +14,10 @@ int shm_create_region(char* shm_name);
  *
  * @param fd The fd of the app's shared memory.
  * @param size Size of the shared mem region.
- * @return int ptr to the mapped region
+ * @return void ptr to the mapped region
  */
-int* shm_map_region(int fd, size_t size);
+void* shm_map_region(int fd, size_t size);
+
+void shm_unlink_region(char* shm_name);
 
 #endif /* PIFUS_SHMEM_H */

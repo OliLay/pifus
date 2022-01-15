@@ -6,7 +6,7 @@
 #define SHM_APP_SIZE 100000
 
 /* Socket shmem */
-#define SHM_SOCKET_NAME_PREFIX "/socket"
+#define SHM_SOCKET_NAME_PREFIX "-socket"
 #define SHM_SOCKET_SIZE 100
 
 /* general shmem */
@@ -14,6 +14,7 @@
 
 /* socket */
 #define SQUEUE_SIZE 10
+#define CQUEUE_SIZE 10
 
 
 #endif /* PIFUS_H */
