@@ -14,6 +14,7 @@
 
 /* app */
 #define MAX_APP_AMOUNT 100
+#define MAX_SOCKETS_PER_APP 100
 
 /* socket */
 #define SQUEUE_SIZE 10

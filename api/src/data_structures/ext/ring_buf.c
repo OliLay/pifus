@@ -41,21 +41,19 @@
 #include "data_structures/ext/ring_buf.h"
 
 /*..........................................................................*/
-void RingBuf_ctor(RingBuf * const me,
-                  RingBufElement sto[], RingBufCtr sto_len) {
-    me->buf  = &sto[0];
+void RingBuf_ctor(RingBuf * const me, RingBufCtr sto_len) {
     me->end  = sto_len;
     me->head = 0U;
     me->tail = 0U;
 }
 /*..........................................................................*/
-bool RingBuf_put(RingBuf * const me, RingBufElement const el) {
+bool RingBuf_put(RingBuf * const me, RingBufElement* buf, RingBufElement const el) {
     RingBufCtr head = me->head + 1U;
     if (head == me->end) {
         head = 0U;
     }
     if (head != me->tail) { /* buffer NOT full? */
-        me->buf[me->head] = el;
+        buf[me->head] = el;
         me->head = head; /* update the head to a *valid* index */
         return true;  /* element placed in the buffer */
     }
@@ -64,10 +62,10 @@ bool RingBuf_put(RingBuf * const me, RingBufElement const el) {
     }
 }
 /*..........................................................................*/
-bool RingBuf_get(RingBuf * const me, RingBufElement *pel) {
+bool RingBuf_get(RingBuf * const me, RingBufElement* buf, RingBufElement *pel) {
     RingBufCtr tail = me->tail;
     if (me->head != tail) { /* ring buffer NOT empty? */
-        *pel = me->buf[tail];
+        *pel = buf[tail];
         ++tail;
         if (tail == me->end) {
             tail = 0U;
@@ -80,10 +78,10 @@ bool RingBuf_get(RingBuf * const me, RingBufElement *pel) {
     }
 }
 /*..........................................................................*/
-void RingBuf_process_all(RingBuf * const me, RingBufHandler handler) {
+void RingBuf_process_all(RingBuf * const me, RingBufElement* buf, RingBufHandler handler) {
     RingBufCtr tail = me->tail;
     while (me->head != tail) { /* ring buffer NOT empty? */
-        (*handler)(me->buf[tail]);
+        (*handler)(buf[tail]);
         ++tail;
         if (tail == me->end) {
             tail = 0U;

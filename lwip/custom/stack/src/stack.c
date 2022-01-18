@@ -23,8 +23,42 @@
 #include "init.h"
 #include "stack.h"
 
-uint32_t next_app_number = 0;
 struct pifus_app *app_ptrs[MAX_APP_AMOUNT];
+socket_index_t app_local_highest_socket_number[MAX_APP_AMOUNT];
+uint32_t next_app_number = 0;
+
+struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+
+/**
+ * @brief Maps new sockets (if any) for the app with the given index. 
+ * 
+ * @param app_index The index of the app to check.
+ */
+void map_new_sockets(app_index_t app_index)
+{
+    socket_index_t current_highest_index = app_local_highest_socket_number[app_index];
+    socket_index_t app_highest_index = app_ptrs[app_index]->highest_socket_number;
+
+    if (current_highest_index < app_highest_index)
+    {
+        char *shm_name;
+        for (socket_index_t i = current_highest_index + 1; i <= app_highest_index; i++)
+        {
+            asprintf(&shm_name, "%s%u%s%u", SHM_APP_NAME_PREFIX, app_index, SHM_SOCKET_NAME_PREFIX, i);
+
+            int fd = shm_open_region(shm_name, false);
+
+            if (fd < 0)
+            {
+                printf("pifus: failed to map '%s' with errno %i\n", shm_name, errno);
+            }
+
+            socket_ptrs[app_index][i] = (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, false);
+
+            printf("pifus: Mapped socket %u for app %u\n", i, app_index);
+        }
+    }
+}
 
 /**
  * @brief Searches for new app shmem regions (starting at next_app_number) and maps them.
@@ -33,7 +67,7 @@ void scan_for_app_regions(void)
 {
     char *app_shm_name = NULL;
 
-    for (uint32_t i = next_app_number; i < MAX_APP_AMOUNT; i++)
+    for (app_index_t i = next_app_number; i < MAX_APP_AMOUNT; i++)
     {
         asprintf(&app_shm_name, "%s%u", SHM_APP_NAME_PREFIX, next_app_number);
 
@@ -42,9 +76,11 @@ void scan_for_app_regions(void)
         if (fd >= 0)
         {
             app_ptrs[next_app_number] = (struct pifus_app *)shm_map_region(fd, SHM_APP_SIZE, false);
-            next_app_number++;
 
-            printf("pfius: Found new region with shmem name %s\n", app_shm_name);
+            // do this once initially, rest is done by waking up via futexes
+            map_new_sockets(next_app_number);
+
+            next_app_number++;
         }
         else
         {
@@ -57,14 +93,24 @@ void lwip_loop_iteration(void)
 {
     scan_for_app_regions();
 
-    if (app_ptrs[0] != NULL) {
-        printf("app0 highest_socket_number %u\n", app_ptrs[0]->highest_socket_number);
+    if (socket_ptrs[0][1] != NULL && socket_ptrs[0][2] != NULL)
+    {
+        struct pifus_operation get_op;
+        if (pifus_ring_buffer_pop(&socket_ptrs[0][1]->squeue, socket_ptrs[0][1]->squeue_buffer, &get_op))
+        {
+            printf("get from squeue0: %u\n", get_op.op);
+        }
+        struct pifus_operation get_op1;
+        if (pifus_ring_buffer_pop(&socket_ptrs[0][2]->squeue, socket_ptrs[0][2]->squeue_buffer, &get_op1))
+        {
+            printf("get from squeue1: %u\n", get_op1.op);
+        }
     }
 
     /** TODO:
-     * distribute RX packets
-     * 
-     * consume TX packets (from TX thread via queue)
+     * - functionality for socket add
+     * - distribute RX packets
+     * - consume TX packets (from TX thread via queue)
      * 
      */
 }
@@ -76,7 +122,7 @@ void lwip_init_complete(void)
     scan_for_app_regions();
 
     /** TODO:
-     * Shmem init, TX thread start
+     * - TX thread start
      **/
 }
 

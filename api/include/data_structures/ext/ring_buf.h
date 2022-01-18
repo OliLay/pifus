@@ -44,7 +44,6 @@ typedef struct pifus_operation RingBufElement;
 typedef uint16_t RingBufCtr;
 
 typedef struct {
-    RingBufElement *buf; /*!< pointer to the start of the ring buffer */
     RingBufCtr     end;  /*!< offset of the end of the ring buffer */
     RingBufCtr     head; /*!< offset to where next byte will be inserted */
     RingBufCtr     tail; /*!< offset of where next byte will be extracted */
@@ -52,11 +51,10 @@ typedef struct {
 
 typedef void (*RingBufHandler)(RingBufElement const el);
 
-void RingBuf_ctor(RingBuf * const me,
-                  RingBufElement sto[], RingBufCtr sto_len);
-bool RingBuf_put(RingBuf * const me, RingBufElement const el);
-bool RingBuf_get(RingBuf * const me, RingBufElement *pel);
-void RingBuf_process_all(RingBuf * const me, RingBufHandler handler);
+void RingBuf_ctor(RingBuf * const me, RingBufCtr sto_len);
+bool RingBuf_put(RingBuf * const me, RingBufElement* buf, RingBufElement const el);
+bool RingBuf_get(RingBuf * const me, RingBufElement* buf, RingBufElement *pel);
+void RingBuf_process_all(RingBuf * const me, RingBufElement* buf, RingBufHandler handler);
 RingBufCtr RingBuf_num_free(RingBuf * const me);
 
 #endif /* RING_BUF */

@@ -8,6 +8,9 @@
 typedef struct pifus_ring_buffer pifus_squeue;
 typedef struct pifus_ring_buffer pifus_cqueue;
 
+typedef uint32_t app_index_t;
+typedef uint32_t socket_index_t;
+
 enum protocol {
     PROTOCOL_TCP = 0,
     PROTOCOL_UDP = 1
@@ -32,7 +35,7 @@ struct pifus_app
 {
     /* Gives index of highest socket. Used as futex for wake-up when new socket
      * is created */
-    uint32_t highest_socket_number;
+    socket_index_t highest_socket_number;
 };
 
 /**

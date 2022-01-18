@@ -1,5 +1,6 @@
 /* standard includes */
 #include <stdio.h>
+#include <unistd.h>
 
 /* local includes */
 #include "writer.h"
@@ -21,19 +22,9 @@ int main(int argc, char *argv[])
     const struct pifus_operation op1 = {.op = TCP_ABORT};
     enqueue_operation(socket1, op1);
 
-    struct pifus_operation get_op;
-    pifus_ring_buffer_pop(&socket->squeue, &get_op);
-    struct pifus_operation get_op1;
-    pifus_ring_buffer_pop(&socket1->squeue, &get_op1);
-
-    printf("get from squeue0: %u\n", get_op.op);
-    printf("get from squeue1: %u\n", get_op1.op);
-
     /* TODO: writer logic */
 
-    while (true) {
-        
-    }
+    sleep(5);
 
     pifus_exit();
 

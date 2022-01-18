@@ -29,7 +29,7 @@ struct pifus_app* map_app_region(int fd);
  * @return fd for the shared memory
  */
 int create_app_shm_region(void) {
-    uint32_t app_number = 0;
+    app_index_t app_number = 0;
 
     int fd;
     while (true) {
