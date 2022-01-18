@@ -31,6 +31,10 @@ int main(int argc, char *argv[])
 
     /* TODO: writer logic */
 
+    while (true) {
+        
+    }
+
     pifus_exit();
 
     return 0;

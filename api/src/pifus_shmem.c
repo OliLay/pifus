@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 /* shmem includes */
 #include <fcntl.h>
@@ -14,17 +15,23 @@
 #include "pifus_constants.h"
 #include "pifus_shmem.h"
 
-int shm_create_region(char* shm_name) {
-    int fd = shm_open(shm_name, O_RDWR | O_CREAT | O_EXCL, SHM_MODE);
+int shm_open_region(char* shm_name, bool create) {
+    int flags = O_RDWR | O_EXCL;
+
+    if (create) {
+        flags |= O_CREAT;
+    }
+
+    int fd = shm_open(shm_name, flags, SHM_MODE);
 
     if (fd >= 0) {
-        printf("pifus: created shmem with name %s\n", shm_name);
+        printf("pifus: opened shmem with name %s\n", shm_name);
     }
 
     return fd;
 }
 
-void* shm_map_region(int fd, size_t size) {
+void* shm_map_region(int fd, size_t size, bool create) {
     int err = ftruncate(fd, size);
     if (err < 0) {
         printf("pifus: ftruncate failed with code %i\n", errno);
@@ -39,7 +46,9 @@ void* shm_map_region(int fd, size_t size) {
         exit(1);
     }
 
-    memset(shmem_ptr, 0x00, size);
+    if (create) {
+        memset(shmem_ptr, 0x00, size);
+    }
 
     return shmem_ptr;
 }

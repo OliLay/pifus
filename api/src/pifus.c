@@ -15,11 +15,14 @@
 /* local includes */
 #include "pifus.h"
 #include "pifus_constants.h"
-#include "pifus_shmem.h"
 #include "pifus_socket.h"
+#include "pifus_shmem.h"
 
 char* app_shm_name = NULL;
 struct pifus_app* app_state = NULL;
+
+int create_app_shm_region(void);
+struct pifus_app* map_app_region(int fd);
 
 /**
  * @brief Calls shmem_open with next available app id
@@ -30,9 +33,11 @@ int create_app_shm_region(void) {
 
     int fd;
     while (true) {
-        asprintf(&app_shm_name, "%s%u", SHM_APP_NAME_PREFIX, app_number);
+        if (asprintf(&app_shm_name, "%s%u", SHM_APP_NAME_PREFIX, app_number) < 0) {
+            printf("pifus: error when calling asprintf\n");
+        }
 
-        fd = shm_create_region(app_shm_name);
+        fd = shm_open_region(app_shm_name, true);
 
         if (fd >= 0) {
             return fd;
@@ -57,7 +62,7 @@ int create_app_shm_region(void) {
  * @return Pointer to pifus_app struct.
  */
 struct pifus_app* map_app_region(int fd) {
-    return (struct pifus_app*)shm_map_region(fd, SHM_APP_SIZE);
+    return (struct pifus_app*)shm_map_region(fd, SHM_APP_SIZE, true);
 }
 
 void pifus_initialize(void) {

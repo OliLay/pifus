@@ -19,9 +19,9 @@ struct pifus_socket* map_socket_region(void) {
     asprintf(&shm_name, "%s%s%u", app_shm_name, SHM_SOCKET_NAME_PREFIX,
              app_state->highest_socket_number);
 
-    int fd = shm_create_region(shm_name);
+    int fd = shm_open_region(shm_name, true);
 
-    return shm_map_region(fd, SHM_SOCKET_SIZE);
+    return shm_map_region(fd, SHM_SOCKET_SIZE, true);
 }
 
 void allocate_structures(struct pifus_socket* socket) {

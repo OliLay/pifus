@@ -1,8 +1,8 @@
 # Custom (benchmark and pifus)
 
 ## Structure
-- `Benchmark` folder contains example applications and benchmarks for assessing functionality / performance of lwIP and `pifus`
-- `pifus` folder consists of the code for the binary that contains `lwip` and the stack-side API for `pifus`
+- `benchmark` folder contains example applications and benchmarks for assessing functionality / performance of lwIP and `pifus`
+- `stack` folder consists of the code stack-side of `pifus`
 
 ## Build
 Build via toplevel (`lwip` folder), see instructions there

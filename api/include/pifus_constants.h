@@ -12,6 +12,9 @@
 /* general shmem */
 #define SHM_MODE 0700
 
+/* app */
+#define MAX_APP_AMOUNT 100
+
 /* socket */
 #define SQUEUE_SIZE 10
 #define CQUEUE_SIZE 10

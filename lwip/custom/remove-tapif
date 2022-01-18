@@ -1,0 +1,10 @@
+#!/bin/bash
+
+sudo ip link set tap0 down
+sudo ip link set tap1 down
+
+sudo ip link delete tap0
+sudo ip link delete tap1
+
+sudo ip link set lwipbridge down
+sudo brctl delbr lwipbridge
