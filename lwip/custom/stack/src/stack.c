@@ -108,10 +108,9 @@ void lwip_loop_iteration(void)
     }
 
     /** TODO:
-     * - functionality for socket add
+     * - [DONE] functionality for socket add
      * - distribute RX packets
-     * - consume TX packets (from TX thread via queue)
-     * 
+     * - TX handling (from TX thread via queue)
      */
 }
 
