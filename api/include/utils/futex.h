@@ -1,32 +1,31 @@
 #ifndef PIFUS_FUTEX_H
 #define PIFUS_FUTEX_H
 
-#include <sys/time.h>
 #include <syscall.h>
+#include <time.h>
 #include <unistd.h>
 
+#include "stdint.h"
+
+/* Syscall number for futex_waitv in Kernel > 5.16. */
+#define __NR_futex_waitv 449
+
 struct futex_waitv {
-    __u64 val;
-    __u64 uaddr;
-    __u32 flags;
-    __u32 __reserved;
+    uint64_t val;
+    uint64_t uaddr;
+    uint32_t flags;
+    uint32_t __reserved;
 };
 
 /**
  * futex_waitv - Wait at multiple futexes, wake on any
- * @waiters:    Array of waiters
+ * @waiters:Array of waiters
  * @nr_waiters: Length of waiters array
  * @flags: Operation flags
- * @timo:  Optional timeout for operation
+ * @timo: Optional timeout for operation
  */
-// static inline int futex_waitv(volatile struct futex_waitv *waiters, unsigned
-// long nr_waiters, 			      unsigned long flags, struct timespec
-// *timo, clockid_t
-// clockid)
-//
-//	return syscall(__NR_futex_waitv, waiters, nr_waiters, flags, timo,
-// clockid);
-//}
+int futex_waitv(volatile struct futex_waitv* waiters, unsigned long nr_waiters,
+                unsigned long flags, struct timespec* timo, clockid_t clockid);
 
 int futex(int* uaddr, int futex_op, int val, const struct timespec* timeout,
           int* uaddr2, int val3);

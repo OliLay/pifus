@@ -4,9 +4,9 @@
 #include <stdint.h>
 
 struct pifus_app {
-    uint64_t highest_socket_number;
-    uint32_t highest_socket_number_futex; /* for wake-up when new socket is
-                                             created */
+    /* Gives index of highest socket. Used as futex for wake-up when new socket
+     * is created */
+    uint32_t highest_socket_number;
 };
 
 extern char* app_shm_name;

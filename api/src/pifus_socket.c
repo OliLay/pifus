@@ -16,7 +16,7 @@ struct pifus_socket* map_socket_region(void) {
     app_state->highest_socket_number++;
     char* shm_name;
 
-    asprintf(&shm_name, "%s%s%lu", app_shm_name, SHM_SOCKET_NAME_PREFIX,
+    asprintf(&shm_name, "%s%s%u", app_shm_name, SHM_SOCKET_NAME_PREFIX,
              app_state->highest_socket_number);
 
     int fd = shm_create_region(shm_name);
@@ -33,7 +33,7 @@ void allocate_structures(struct pifus_socket* socket) {
 
 void notify_new_socket(void) {
     // TODO: should be nonblocking!
-    int retcode = futex_wake(&app_state->highest_socket_number_futex);
+    int retcode = futex_wake(&app_state->highest_socket_number);
 
     if (retcode < 0) {
         printf(
