@@ -43,9 +43,10 @@ void notify_new_socket(void) {
     }
 }
 
-struct pifus_socket* pifus_socket(void) {
+struct pifus_socket* pifus_socket(enum protocol protocol) {
     struct pifus_socket* socket = map_socket_region();
 
+    socket->protocol = protocol;
     allocate_structures(socket);
     notify_new_socket();
 

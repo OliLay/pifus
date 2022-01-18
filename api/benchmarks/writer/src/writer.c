@@ -12,13 +12,13 @@ int main(int argc, char *argv[])
 
     pifus_initialize();
 
-    struct pifus_socket* socket = pifus_socket();
-    struct pifus_socket* socket1 = pifus_socket();
+    struct pifus_socket* socket = pifus_socket(PROTOCOL_UDP);
+    struct pifus_socket* socket1 = pifus_socket(PROTOCOL_TCP);
 
-    const struct pifus_operation op = {.opcode = 88};
+    const struct pifus_operation op = {.op = UDP_CONNECT};
     enqueue_operation(socket, op);
 
-    const struct pifus_operation op1 = {.opcode = 101};
+    const struct pifus_operation op1 = {.op = TCP_ABORT};
     enqueue_operation(socket1, op1);
 
     struct pifus_operation get_op;
@@ -26,8 +26,8 @@ int main(int argc, char *argv[])
     struct pifus_operation get_op1;
     pifus_ring_buffer_pop(&socket1->squeue, &get_op1);
 
-    printf("get from squeue0: %u\n", get_op.opcode);
-    printf("get from squeue1: %u\n", get_op1.opcode);
+    printf("get from squeue0: %u\n", get_op.op);
+    printf("get from squeue1: %u\n", get_op1.op);
 
     /* TODO: writer logic */
 

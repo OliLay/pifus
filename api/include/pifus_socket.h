@@ -8,11 +8,17 @@
 typedef struct pifus_ring_buffer pifus_squeue;
 typedef struct pifus_ring_buffer pifus_cqueue;
 
+enum protocol {
+    PROTOCOL_TCP = 0,
+    PROTOCOL_UDP = 1
+};
+
 /**
  * @brief Internal, client-side datastructure of a socket.
  * Holds pointers to squeue and cqueue.
  */
 struct pifus_socket {
+    enum protocol protocol;
     pifus_squeue squeue;
     struct pifus_operation squeue_buffer[SQUEUE_SIZE];
     pifus_cqueue cqueue;
@@ -24,7 +30,7 @@ struct pifus_socket {
  * 
  * @return Pointer to a pifus_socket 
  */
-struct pifus_socket* pifus_socket(void);
+struct pifus_socket* pifus_socket(enum protocol protocol);
 
 void enqueue_operation(struct pifus_socket* socket, struct pifus_operation const op);
 
