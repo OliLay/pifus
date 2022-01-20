@@ -1,12 +1,11 @@
 #include "utils/futex.h"
-#include "linux/futex.h"
 
 int futex_waitv(volatile struct futex_waitv* waiters, unsigned long nr_waiters,
                 unsigned long flags, struct timespec* timo, clockid_t clockid) {
     return syscall(__NR_futex_waitv, waiters, nr_waiters, flags, timo, clockid);
 }
 
-int futex(int* uaddr, int futex_op, int val, const struct timespec* timeout,
+int futex(uint32_t* uaddr, int futex_op, int val, const struct timespec* timeout,
           int* uaddr2, int val3) {
     return syscall(SYS_futex, uaddr, futex_op, val, timeout, uaddr2, val3);
 }

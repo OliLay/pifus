@@ -22,11 +22,23 @@
 /* local includes */
 #include "init.h"
 #include "stack.h"
+#include "tx.h"
 
+/**
+ * app_ptrs[#app] -> ptr to shmem app region
+ */
 struct pifus_app *app_ptrs[MAX_APP_AMOUNT];
+/**
+ * app_local_highest_socket_number[#app] -> highest active socket number
+ */
 socket_index_t app_local_highest_socket_number[MAX_APP_AMOUNT];
-uint32_t next_app_number = 0;
-
+/**
+ * next app number to be assigned
+ */
+app_index_t next_app_number = 0;
+/**
+ * socket_ptrs[#app][#socket] -> ptr to shmem socket region of #app and corresponding #socket of that app
+ */
 struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 
 /**
@@ -91,22 +103,6 @@ void scan_for_app_regions(void)
 
 void lwip_loop_iteration(void)
 {
-    scan_for_app_regions();
-
-    if (socket_ptrs[0][1] != NULL && socket_ptrs[0][2] != NULL)
-    {
-        struct pifus_operation get_op;
-        if (pifus_ring_buffer_pop(&socket_ptrs[0][1]->squeue, socket_ptrs[0][1]->squeue_buffer, &get_op))
-        {
-            printf("get from squeue0: %u\n", get_op.op);
-        }
-        struct pifus_operation get_op1;
-        if (pifus_ring_buffer_pop(&socket_ptrs[0][2]->squeue, socket_ptrs[0][2]->squeue_buffer, &get_op1))
-        {
-            printf("get from squeue1: %u\n", get_op1.op);
-        }
-    }
-
     /** TODO:
      * - [DONE] functionality for socket add
      * - distribute RX packets
@@ -118,8 +114,7 @@ void lwip_init_complete(void)
 {
     printf("pifus: lwip init complete.\n");
 
-    scan_for_app_regions();
-
+    start_tx_thread();
     /** TODO:
      * - TX thread start
      **/

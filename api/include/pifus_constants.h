@@ -11,12 +11,15 @@
 
 /* general shmem */
 #define SHM_MODE 0700
+#define MAX_FUTEXES_PER_TX_THREAD 128
 
 /* app */
 #define MAX_APP_AMOUNT 100
 #define MAX_SOCKETS_PER_APP 100
 
 /* socket */
+#define NON_EXISTENT_SOCKET_INDEX 0
+
 #define SQUEUE_SIZE 10
 #define CQUEUE_SIZE 10
 

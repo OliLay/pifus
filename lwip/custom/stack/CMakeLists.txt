@@ -10,7 +10,10 @@ set (LWIP_INCLUDE_DIRS
 include(${LWIP_DIR}/src/Filelists.cmake)
 include(${LWIP_DIR}/contrib/ports/unix/Filelists.cmake)
 
-add_executable(stack ${CMAKE_CURRENT_LIST_DIR}/src/stack.c ${NEEDED_SOURCES})
+add_executable(stack 
+                ${CMAKE_CURRENT_LIST_DIR}/src/stack.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/tx.c 
+                ${NEEDED_SOURCES})
 target_include_directories(stack PRIVATE ${LWIP_INCLUDE_DIRS})
 target_compile_options(stack PRIVATE ${LWIP_COMPILER_FLAGS})
 target_compile_definitions(stack PRIVATE ${LWIP_DEFINITIONS} ${LWIP_MBEDTLS_DEFINITIONS})

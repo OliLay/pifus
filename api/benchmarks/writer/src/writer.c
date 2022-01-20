@@ -24,7 +24,14 @@ int main(int argc, char *argv[])
 
     /* TODO: writer logic */
 
-    sleep(5);
+    sleep(10);
+
+    const struct pifus_operation op2 = {.op = TCP_BIND};
+    enqueue_operation(socket1, op2);
+
+    while (true) {
+        
+    }
 
     pifus_exit();
 

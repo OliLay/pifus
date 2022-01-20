@@ -15,6 +15,7 @@
 struct pifus_socket *map_socket_region(void);
 void allocate_structures(struct pifus_socket *socket);
 void notify_new_socket(void);
+void notify_new_squeue_operation(struct pifus_socket *socket);
 
 struct pifus_socket *map_socket_region(void)
 {
@@ -29,7 +30,7 @@ struct pifus_socket *map_socket_region(void)
 
     int fd = shm_open_region(shm_name, true);
 
-    return (struct pifus_socket *) shm_map_region(fd, SHM_SOCKET_SIZE, true);
+    return (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
 }
 
 void allocate_structures(struct pifus_socket *socket)
@@ -62,11 +63,18 @@ struct pifus_socket *pifus_socket(enum protocol protocol)
     return socket;
 }
 
-// TODO: remove from header
+void notify_new_squeue_operation(struct pifus_socket *socket)
+{
+    socket->squeue_futex++;
+    futex_wake(&socket->squeue_futex);
+}
+
+// TODO: remove from header, should be only internal function, that is called by e.g. recv, send
 void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op)
 {
     pifus_ring_buffer_put(&socket->squeue, socket->squeue_buffer, op);
+    notify_new_squeue_operation(socket);
 }
 
 void pifus_socket_exit_all(void)

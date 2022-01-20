@@ -4,6 +4,7 @@
 #include "pifus_constants.h"
 #include "data_structures/pifus_ring_buffer.h"
 #include "data_structures/ext/ring_buf.h"
+#include "utils/futex.h"
 
 typedef struct pifus_ring_buffer pifus_squeue;
 typedef struct pifus_ring_buffer pifus_cqueue;
@@ -22,8 +23,12 @@ enum protocol {
 struct pifus_socket
 {
     enum protocol protocol;
+    /* squeue */
+    futex_t squeue_futex;
     pifus_squeue squeue;
     struct pifus_operation squeue_buffer[SQUEUE_SIZE];
+    /* cqueue */
+    futex_t cqueue_futex;
     pifus_cqueue cqueue;
     struct pifus_operation cqueue_buffer[CQUEUE_SIZE];
 };

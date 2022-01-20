@@ -1,0 +1,178 @@
+#include "tx.h"
+
+/* std */
+#include "pthread.h"
+#include "stdbool.h"
+#include "errno.h"
+#include "stdio.h"
+#include "string.h"
+
+/* pifus */
+#include "pifus_shmem.h"
+#include "pifus_constants.h"
+#include "pifus_socket.h"
+#include "utils/futex.h"
+#include "stack.h"
+
+pthread_t tx_thread;
+static struct futex_waitv waitvs[MAX_FUTEXES_PER_TX_THREAD];
+
+struct pifus_socket_identifier
+{
+    app_index_t app_index;
+    socket_index_t socket_index;
+};
+
+/** shadow variables of futexes **/
+futex_t app_futexes[MAX_APP_AMOUNT];
+futex_t socket_futexes[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+/** futex nr to app_index **/
+app_index_t app_from_futex_nr[MAX_APP_AMOUNT];
+/** futex nr to pifus_socket_identifier **/
+struct pifus_socket_identifier socket_from_futex_nr[MAX_SOCKETS_PER_APP];
+
+void handle_new_sockets(app_index_t app_index)
+{
+    printf("pifus_tx: new socket(s) detected for app %u\n", app_index);
+
+    // refresh shadow variable of futex
+    app_futexes[app_index] = app_ptrs[app_index]->highest_socket_number;
+
+    map_new_sockets(app_index);
+}
+
+void handle_squeue_change(app_index_t app_index, socket_index_t socket_index)
+{
+    printf("pifus_tx: new operation in squeue from socket %u in app %u\n", socket_index, app_index);
+
+    struct pifus_socket* socket = socket_ptrs[app_index][socket_index];
+
+    // refresh shadow variable of futex
+    socket_futexes[app_index][socket_index] = socket->squeue_futex;
+
+    struct pifus_operation op;
+    if (pifus_ring_buffer_pop(&socket->squeue, socket->squeue_buffer, &op))
+    {
+        printf("pifus_tx: Operation received from app%u/socket%u: %s\n", app_index, socket_index, operation_str(op.op));
+    }
+
+    // TODO: put into processing pipeline (queue to stack thread)
+}
+
+/**
+ * @brief Fills the waitv structure with both app and socket futexes, so that afterwards 
+ * futex_waitv can be called to wait for the futexes.
+ * 
+ * @return uint8_t The amount of futexes to wait for.
+ */
+uint8_t fill_waitv(void)
+{
+    uint8_t current_amount_futexes = 0;
+    for (app_index_t app_index = 0; app_index < next_app_number; app_index++)
+    {
+        struct pifus_app *current_app_ptr = app_ptrs[app_index];
+
+        if (current_app_ptr != NULL)
+        {
+            if (current_app_ptr->highest_socket_number != app_futexes[app_index])
+            {
+                handle_new_sockets(app_index);
+            }
+
+            waitvs[current_amount_futexes].uaddr = (uintptr_t)&current_app_ptr->highest_socket_number;
+            waitvs[current_amount_futexes].flags = FUTEX_32;
+            waitvs[current_amount_futexes].val = app_futexes[app_index];
+            waitvs[current_amount_futexes].__reserved = 0;
+            app_from_futex_nr[current_amount_futexes] = app_index;
+
+            current_amount_futexes++;
+
+            for (socket_index_t socket_index = 1; socket_index <= app_ptrs[app_index]->highest_socket_number; socket_index++)
+            {
+                struct pifus_socket *current_socket_ptr = socket_ptrs[app_index][socket_index];
+
+                if (current_socket_ptr != NULL)
+                {
+                    if (current_socket_ptr->squeue_futex != socket_futexes[app_index][socket_index])
+                    {
+                        handle_squeue_change(app_index, socket_index);
+                    }
+
+                    waitvs[current_amount_futexes].uaddr = (uintptr_t)&current_socket_ptr->squeue_futex;
+                    waitvs[current_amount_futexes].flags = FUTEX_32;
+                    waitvs[current_amount_futexes].val = socket_futexes[app_index][socket_index];
+                    waitvs[current_amount_futexes].__reserved = 0;
+
+                    socket_from_futex_nr[current_amount_futexes].app_index = app_index;
+                    socket_from_futex_nr[current_amount_futexes].socket_index = socket_index;
+
+                    current_amount_futexes++;
+                }
+            }
+        }
+    }
+
+    return current_amount_futexes;
+}
+
+/**
+ * @brief This loop essentially does three major things:
+ * - scan for new app regions every iteration
+ * - futex_waitv on all app futexes (if triggered -> add new sockets) 
+ * - futex_waitv on all socket squeue futexes (if triggered -> dequeue op)
+ * 
+ * @param arg unused
+ * @return void* no return value
+ */
+void *tx_thread_loop(void *arg)
+{
+    while (true)
+    {
+        scan_for_app_regions();
+
+        /* clean up mappings */
+        memset(app_from_futex_nr, 0, sizeof(app_from_futex_nr));
+        memset(socket_from_futex_nr, 0, sizeof(socket_from_futex_nr));
+
+        uint8_t amount_futexes = fill_waitv();
+        if (amount_futexes > 0)
+        {
+            // TODO: make sure to give a timeout to waitv so that app regions are regularly scanned!
+            int ret_code = futex_waitv(waitvs, amount_futexes, 0, NULL, 0);
+
+            if (ret_code >= 0)
+            {
+                struct futex_waitv signaled_wait = waitvs[ret_code];
+
+                if (socket_from_futex_nr[ret_code].socket_index == NON_EXISTENT_SOCKET_INDEX)
+                {
+                    handle_new_sockets(app_from_futex_nr[ret_code]);
+                }
+                else
+                {
+                    struct pifus_socket_identifier *socket_identifier = &socket_from_futex_nr[ret_code];
+                    handle_squeue_change(socket_identifier->app_index, socket_identifier->socket_index);
+                }
+            }
+            else
+            {
+                printf("pifus_tx: futex_waitv returned %i!\n", errno);
+                // TODO: error handling, EAGAIN, TIMEOUT, etc. see https://www.kernel.org/doc/html/latest/userspace-api/futex2.html
+            }
+        }
+    }
+}
+
+void start_tx_thread(void)
+{
+    int ret = pthread_create(&tx_thread, NULL, tx_thread_loop, NULL);
+
+    if (ret < 0)
+    {
+        printf("pifus_tx: Could not start TX thread due to %i!\n", errno);
+    }
+    else
+    {
+        printf("pifus_tx: Started TX thread!\n");
+    }
+}
