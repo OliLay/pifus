@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "tx.h"
 
 /* std */
@@ -6,6 +7,8 @@
 #include "errno.h"
 #include "stdio.h"
 #include "string.h"
+#include "stdlib.h"
+#include "time.h"
 
 /* pifus */
 #include "pifus_shmem.h"
@@ -14,23 +17,91 @@
 #include "utils/futex.h"
 #include "stack.h"
 
-pthread_t tx_thread;
-static struct futex_waitv waitvs[MAX_FUTEXES_PER_TX_THREAD];
-
+/** Uniquely identifies a socket. */
 struct pifus_socket_identifier
 {
     app_index_t app_index;
     socket_index_t socket_index;
 };
 
+pthread_t tx_thread;
+static struct futex_waitv waitvs[MAX_FUTEXES_PER_TX_THREAD];
 /** shadow variables of futexes **/
 futex_t app_futexes[MAX_APP_AMOUNT];
 futex_t socket_futexes[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+
+/** app_local_highest_socket_number[#app] -> highest active socket number */
+socket_index_t app_local_highest_socket_number[MAX_APP_AMOUNT];
 /** futex nr to app_index **/
 app_index_t app_from_futex_nr[MAX_APP_AMOUNT];
 /** futex nr to pifus_socket_identifier **/
 struct pifus_socket_identifier socket_from_futex_nr[MAX_SOCKETS_PER_APP];
 
+/**
+ * @brief Maps new sockets (if any) for the app with the given index. 
+ * 
+ * @param app_index The index of the app to check.
+ */
+void map_new_sockets(app_index_t app_index)
+{
+    socket_index_t current_highest_index = app_local_highest_socket_number[app_index];
+    socket_index_t app_highest_index = app_ptrs[app_index]->highest_socket_number;
+
+    if (current_highest_index < app_highest_index)
+    {
+        char *shm_name;
+        for (socket_index_t i = current_highest_index + 1; i <= app_highest_index; i++)
+        {
+            asprintf(&shm_name, "%s%u%s%u", SHM_APP_NAME_PREFIX, app_index, SHM_SOCKET_NAME_PREFIX, i);
+
+            int fd = shm_open_region(shm_name, false);
+
+            if (fd < 0)
+            {
+                printf("pifus_tx: failed to map '%s' with errno %i\n", shm_name, errno);
+            }
+
+            socket_ptrs[app_index][i] = (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, false);
+
+            printf("pifus_tx: Mapped socket %u for app %u\n", i, app_index);
+            free(shm_name);
+        }
+    }
+}
+
+/**
+ * @brief Searches for new app shmem regions (starting at next_app_number) and maps them.
+ */
+void scan_for_app_regions(void)
+{
+    //printf("pifus_tx: scanning for new app regions...\n");
+    char *app_shm_name = NULL;
+
+    for (app_index_t i = next_app_number; i < MAX_APP_AMOUNT; i++)
+    {
+        asprintf(&app_shm_name, "%s%u", SHM_APP_NAME_PREFIX, next_app_number);
+
+        int fd = shm_open_region(app_shm_name, false);
+
+        if (fd >= 0)
+        {
+            app_ptrs[next_app_number] = (struct pifus_app *)shm_map_region(fd, SHM_APP_SIZE, false);
+            next_app_number++;
+        }
+        else
+        {
+            return;
+        }
+
+        free(app_shm_name);
+    }
+}
+
+/**
+ * @brief Handles event of new socket creation.
+ * 
+ * @param app_index The app_index where new socket(s) have been created.
+ */
 void handle_new_sockets(app_index_t app_index)
 {
     printf("pifus_tx: new socket(s) detected for app %u\n", app_index);
@@ -41,11 +112,17 @@ void handle_new_sockets(app_index_t app_index)
     map_new_sockets(app_index);
 }
 
+/**
+ * @brief Handles event of a 'put' in the squeue of a particular socket.
+ * 
+ * @param app_index The app_index where the affected socket is running in.
+ * @param socket_index The socket_index belonging to the socket with the changed squeue.
+ */
 void handle_squeue_change(app_index_t app_index, socket_index_t socket_index)
 {
     printf("pifus_tx: new operation in squeue from socket %u in app %u\n", socket_index, app_index);
 
-    struct pifus_socket* socket = socket_ptrs[app_index][socket_index];
+    struct pifus_socket *socket = socket_ptrs[app_index][socket_index];
 
     // refresh shadow variable of futex
     socket_futexes[app_index][socket_index] = socket->squeue_futex;
@@ -128,18 +205,18 @@ void *tx_thread_loop(void *arg)
 {
     while (true)
     {
+        // TODO: this spins if we have no futexes to wait on (so only until first app connected)
         scan_for_app_regions();
-
-        /* clean up mappings */
-        memset(app_from_futex_nr, 0, sizeof(app_from_futex_nr));
-        memset(socket_from_futex_nr, 0, sizeof(socket_from_futex_nr));
 
         uint8_t amount_futexes = fill_waitv();
         if (amount_futexes > 0)
         {
-            // TODO: make sure to give a timeout to waitv so that app regions are regularly scanned!
-            int ret_code = futex_waitv(waitvs, amount_futexes, 0, NULL, 0);
+            // TODO: use tv_nsec to allow MSEC constant, needs time arithmetic
+            struct timespec timespec;
+            clock_gettime(CLOCK_MONOTONIC, &timespec);
+            timespec.tv_sec += TX_WAIT_TIMEOUT_SEC;
 
+            int ret_code = futex_waitv(waitvs, amount_futexes, 0, &timespec, CLOCK_MONOTONIC);
             if (ret_code >= 0)
             {
                 struct futex_waitv signaled_wait = waitvs[ret_code];
@@ -153,11 +230,14 @@ void *tx_thread_loop(void *arg)
                     struct pifus_socket_identifier *socket_identifier = &socket_from_futex_nr[ret_code];
                     handle_squeue_change(socket_identifier->app_index, socket_identifier->socket_index);
                 }
+
+                /* clean up previous mappings */
+                memset(app_from_futex_nr, 0, sizeof(app_from_futex_nr));
+                memset(socket_from_futex_nr, 0, sizeof(socket_from_futex_nr));
             }
             else
             {
-                printf("pifus_tx: futex_waitv returned %i!\n", errno);
-                // TODO: error handling, EAGAIN, TIMEOUT, etc. see https://www.kernel.org/doc/html/latest/userspace-api/futex2.html
+                printf("pifus_tx: futex_waitv returned %s!\n", strerror(errno));
             }
         }
     }

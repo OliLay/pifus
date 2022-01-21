@@ -30,6 +30,7 @@ struct pifus_socket *map_socket_region(void)
 
     int fd = shm_open_region(shm_name, true);
 
+    free(shm_name);
     return (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
 }
 
@@ -88,8 +89,11 @@ void pifus_socket_exit_all(void)
                          SHM_SOCKET_NAME_PREFIX, i) < 0)
             {
                 printf("pifus: error when calling asprintf\n");
-            };
+                continue;
+            }
             shm_unlink_region(socket_shm_name);
+
+            free(socket_shm_name);
         }
     }
 }

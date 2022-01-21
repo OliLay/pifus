@@ -19,9 +19,11 @@
 
 /* socket */
 #define NON_EXISTENT_SOCKET_INDEX 0
-
 #define SQUEUE_SIZE 10
 #define CQUEUE_SIZE 10
+
+/* TX */
+#define TX_WAIT_TIMEOUT_SEC 1
 
 
 #endif /* PIFUS_H */
