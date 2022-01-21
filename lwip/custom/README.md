@@ -2,10 +2,10 @@
 
 ## Structure
 - `benchmark` folder contains example applications and benchmarks for assessing functionality / performance of lwIP and `pifus`
-- `stack` folder consists of the code stack-side of `pifus`
+- `stack` folder consists of the stack-side code of `pifus`
 
 ## Build
-Build via toplevel (`lwip` folder), see instructions there
+Build via top-level, see instructions there
 
 ## Usage
 1. Execute `./setup-tapif`

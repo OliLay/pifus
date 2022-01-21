@@ -74,7 +74,6 @@ void map_new_sockets(app_index_t app_index)
  */
 void scan_for_app_regions(void)
 {
-    //printf("pifus_tx: scanning for new app regions...\n");
     char *app_shm_name = NULL;
 
     for (app_index_t i = next_app_number; i < MAX_APP_AMOUNT; i++)
