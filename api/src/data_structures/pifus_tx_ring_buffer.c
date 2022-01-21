@@ -41,16 +41,16 @@
 #include <stdint.h>
 
 /*..........................................................................*/
-void pifus_tx_ring_buffer_create(
-    struct pifus_tx_ring_buffer* ring_buffer, uint8_t buffer_length) {
+void pifus_tx_ring_buffer_create(struct pifus_tx_ring_buffer* ring_buffer,
+                                 buf_index_type buffer_length) {
     ring_buffer->end = buffer_length;
     ring_buffer->head = 0U;
     ring_buffer->tail = 0U;
 }
 /*..........................................................................*/
-bool pifus_tx_ring_buffer_put(
-    struct pifus_tx_ring_buffer* const ring_buffer, struct internal_pifus_operation* buf,
-    struct internal_pifus_operation const el) {
+bool pifus_tx_ring_buffer_put(struct pifus_tx_ring_buffer* const ring_buffer,
+                              struct pifus_internal_operation* buf,
+                              struct pifus_internal_operation const el) {
     buf_index_type head = ring_buffer->head + 1U;
     if (head == ring_buffer->end) {
         head = 0U;
@@ -64,9 +64,9 @@ bool pifus_tx_ring_buffer_put(
     }
 }
 /*..........................................................................*/
-bool pifus_tx_ring_buffer_get(
-    struct pifus_tx_ring_buffer* const ring_buffer, struct internal_pifus_operation* buf,
-    struct internal_pifus_operation* pel) {
+bool pifus_tx_ring_buffer_get(struct pifus_tx_ring_buffer* const ring_buffer,
+                              struct pifus_internal_operation* buf,
+                              struct pifus_internal_operation* pel) {
     buf_index_type tail = ring_buffer->tail;
     if (ring_buffer->head != tail) { /* ring buffer NOT empty? */
         *pel = buf[tail];

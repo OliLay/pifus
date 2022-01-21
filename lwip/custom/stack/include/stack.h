@@ -5,9 +5,8 @@
 
 struct pifus_tx_queue {
     struct pifus_tx_ring_buffer ring_buffer;
-    struct internal_pifus_operation tx_queue_buffer[TX_QUEUE_SIZE];
+    struct pifus_internal_operation tx_queue_buffer[TX_QUEUE_SIZE];
 };
-
 
 extern struct pifus_app *app_ptrs[MAX_APP_AMOUNT];
 extern struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];

@@ -52,7 +52,7 @@ struct pifus_operation_ring_buffer {
 };
 
 void pifus_operation_ring_buffer_create(
-    struct pifus_operation_ring_buffer* ring_buffer, uint8_t buffer_length);
+    struct pifus_operation_ring_buffer* ring_buffer, buf_index_type buffer_length);
 
 bool pifus_operation_ring_buffer_get(
     struct pifus_operation_ring_buffer* const ring_buffer, ring_buf_elem* buf,

@@ -39,8 +39,14 @@
 #define PIFUS_TX_QUEUE_H
 
 #include <stdbool.h>
+
 #include "data_structures/pifus_operation.h"
 #include "pifus_shmem.h"
+
+/**
+ * TODO:
+ *  - think about writing macro for generating ring_buffer functions
+ */
 
 /** Uniquely identifies a socket. */
 struct pifus_socket_identifier {
@@ -52,7 +58,7 @@ struct pifus_socket_identifier {
  * Internal representation of an operation.
  * Contains the operation and information about the socket.
  */
-struct internal_pifus_operation {
+struct pifus_internal_operation {
     struct pifus_operation operation;
     struct pifus_socket_identifier socket_identifier;
 };
@@ -64,11 +70,13 @@ struct pifus_tx_ring_buffer {
 };
 
 void pifus_tx_ring_buffer_create(struct pifus_tx_ring_buffer* ring_buffer,
-                           uint8_t buffer_length);
+                                 buf_index_type buffer_length);
 
 bool pifus_tx_ring_buffer_get(struct pifus_tx_ring_buffer* const ring_buffer,
-                        struct internal_pifus_operation* buf, struct internal_pifus_operation* pel);
+                              struct pifus_internal_operation* buf,
+                              struct pifus_internal_operation* pel);
 
 bool pifus_tx_ring_buffer_put(struct pifus_tx_ring_buffer* const ring_buffer,
-                        struct internal_pifus_operation* buf, struct internal_pifus_operation const el);
+                              struct pifus_internal_operation* buf,
+                              struct pifus_internal_operation const el);
 #endif /* PIFUS_TX_QUEUE_H */

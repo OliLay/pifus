@@ -42,7 +42,7 @@
 
 /*..........................................................................*/
 void pifus_operation_ring_buffer_create(
-    struct pifus_operation_ring_buffer* ring_buffer, uint8_t buffer_length) {
+    struct pifus_operation_ring_buffer* ring_buffer, buf_index_type buffer_length) {
     ring_buffer->end = buffer_length;
     ring_buffer->head = 0U;
     ring_buffer->tail = 0U;

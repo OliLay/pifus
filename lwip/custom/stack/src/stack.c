@@ -1,7 +1,7 @@
 /* std incluces */
+#include "errno.h"
 #include "stdio.h"
 #include "string.h"
-#include "errno.h"
 
 /* lwIP includes */
 #include "lwip/debug.h"
@@ -31,7 +31,8 @@ struct pifus_app *app_ptrs[MAX_APP_AMOUNT];
  */
 app_index_t next_app_number = 0;
 /**
- * socket_ptrs[#app][#socket] -> ptr to shmem socket region of #app and corresponding #socket of that app
+ * socket_ptrs[#app][#socket] -> ptr to shmem socket region of #app and
+ * corresponding #socket of that app
  */
 struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 /**
@@ -39,28 +40,42 @@ struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
  */
 struct pifus_tx_queue tx_queue;
 
-
-void lwip_loop_iteration(void)
-{
+void lwip_loop_iteration(void) {
     /** TODO:
-     * - [DONE] functionality for socket add
-     * - distribute RX packets
-     * - TX handling (from TX thread via queue)
+     * - [TODO] distribute RX packets
+     * - [IN PROGRESS] TX handling (from TX thread via queue)
      */
+
+    struct pifus_internal_operation tx_op;
+    while (pifus_tx_ring_buffer_get(&tx_queue.ring_buffer,
+                                    tx_queue.tx_queue_buffer, &tx_op)) {
+        printf("pifus: Operation received from app%u/socket%u: %s\n",
+               tx_op.socket_identifier.app_index,
+               tx_op.socket_identifier.socket_index,
+               operation_str(tx_op.operation.op));
+
+        /**
+         * TODO:
+         *  - take action depending on op (e.g. call send, recv)
+         *  - for some operation types, we need a look up the operation
+         * afterwards, e.g. for recv
+         *      - we dequeue TX op here and call recv()
+         *      - recv_callback() is called later on
+         *      - we then have to look up the recv operation again to find
+         *  - for other operation types, such as write, we can directly execute
+         * the action and insert something into cqueue
+         */
+    }
 }
 
-void lwip_init_complete(void)
-{
+void lwip_init_complete(void) {
     printf("pifus: lwip init complete.\n");
 
+    pifus_tx_ring_buffer_create(&tx_queue.ring_buffer, TX_QUEUE_SIZE);
     start_tx_thread();
-    /** TODO:
-     * - TX thread start
-     **/
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     LWIP_UNUSED_ARG(argc);
     LWIP_UNUSED_ARG(argv);
 
