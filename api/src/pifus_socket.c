@@ -36,8 +36,8 @@ struct pifus_socket *map_socket_region(void)
 
 void allocate_structures(struct pifus_socket *socket)
 {
-    pifus_ring_buffer_create(&socket->squeue, SQUEUE_SIZE);
-    pifus_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
+    pifus_operation_ring_buffer_create(&socket->squeue, SQUEUE_SIZE);
+    pifus_operation_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
 }
 
 void notify_new_socket(void)
@@ -74,7 +74,7 @@ void notify_new_squeue_operation(struct pifus_socket *socket)
 void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op)
 {
-    pifus_ring_buffer_put(&socket->squeue, socket->squeue_buffer, op);
+    pifus_operation_ring_buffer_put(&socket->squeue, socket->squeue_buffer, op);
     notify_new_squeue_operation(socket);
 }
 

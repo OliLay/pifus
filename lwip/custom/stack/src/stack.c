@@ -34,6 +34,10 @@ app_index_t next_app_number = 0;
  * socket_ptrs[#app][#socket] -> ptr to shmem socket region of #app and corresponding #socket of that app
  */
 struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+/**
+ * TX operations from all sockets.
+ */
+struct pifus_tx_queue tx_queue;
 
 
 void lwip_loop_iteration(void)

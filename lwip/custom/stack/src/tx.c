@@ -17,15 +17,8 @@
 #include "utils/futex.h"
 #include "stack.h"
 
-/** Uniquely identifies a socket. */
-struct pifus_socket_identifier
-{
-    app_index_t app_index;
-    socket_index_t socket_index;
-};
-
 pthread_t tx_thread;
-static struct futex_waitv waitvs[MAX_FUTEXES_PER_TX_THREAD];
+static struct futex_waitv waitvs[TX_MAX_FUTEXES_PER_THREAD];
 /** shadow variables of futexes **/
 futex_t app_futexes[MAX_APP_AMOUNT];
 futex_t socket_futexes[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
@@ -127,7 +120,7 @@ void handle_squeue_change(app_index_t app_index, socket_index_t socket_index)
     socket_futexes[app_index][socket_index] = socket->squeue_futex;
 
     struct pifus_operation op;
-    if (pifus_ring_buffer_pop(&socket->squeue, socket->squeue_buffer, &op))
+    if (pifus_operation_ring_buffer_get(&socket->squeue, socket->squeue_buffer, &op))
     {
         printf("pifus_tx: Operation received from app%u/socket%u: %s\n", app_index, socket_index, operation_str(op.op));
     }

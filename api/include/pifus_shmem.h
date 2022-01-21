@@ -2,12 +2,11 @@
 #define PIFUS_SHMEM_H
 
 #include "pifus_constants.h"
-#include "data_structures/pifus_ring_buffer.h"
-#include "data_structures/ext/ring_buf.h"
+#include "data_structures/pifus_operation_ring_buffer.h"
 #include "utils/futex.h"
 
-typedef struct pifus_ring_buffer pifus_squeue;
-typedef struct pifus_ring_buffer pifus_cqueue;
+typedef struct pifus_operation_ring_buffer pifus_squeue;
+typedef struct pifus_operation_ring_buffer pifus_cqueue;
 
 typedef uint32_t app_index_t;
 typedef uint32_t socket_index_t;

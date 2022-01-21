@@ -11,7 +11,6 @@
 
 /* general shmem */
 #define SHM_MODE 0700
-#define MAX_FUTEXES_PER_TX_THREAD 128
 
 /* app */
 #define MAX_APP_AMOUNT 100
@@ -23,7 +22,10 @@
 #define CQUEUE_SIZE 10
 
 /* TX */
+#define TX_QUEUE_SIZE 1024
 #define TX_WAIT_TIMEOUT_SEC 1
+#define TX_MAX_FUTEXES_PER_THREAD 128
+
 
 
 #endif /* PIFUS_H */

@@ -25,7 +25,7 @@ int shm_open_region(char* shm_name, bool create) {
     int fd = shm_open(shm_name, flags, SHM_MODE);
 
     if (fd >= 0) {
-        printf("pifus: opened shmem with name %s\n", shm_name);
+        printf("pifus_shm: opened shmem with name %s\n", shm_name);
     }
 
     return fd;
@@ -34,7 +34,7 @@ int shm_open_region(char* shm_name, bool create) {
 void* shm_map_region(int fd, size_t size, bool create) {
     int err = ftruncate(fd, size);
     if (err < 0) {
-        printf("pifus: ftruncate failed with code %i\n", errno);
+        printf("pifus_shm: ftruncate failed with code %i\n", errno);
         exit(1);
     }
 
@@ -42,7 +42,7 @@ void* shm_map_region(int fd, size_t size, bool create) {
                                 MAP_SHARED, fd, 0);
 
     if (shmem_ptr == MAP_FAILED) {
-        printf("pifus: mmap failed with code %i\n", errno);
+        printf("pifus_shm: mmap failed with code %i\n", errno);
         exit(1);
     }
 
