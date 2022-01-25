@@ -21,7 +21,16 @@ int main(int argc, char *argv[]) {
 
   struct pifus_operation_result operation_result;
   while (true) {
-    pifus_socket_poll(socket, &operation_result);
+    /**
+     *  TODO: think about callback mechanism, e.g.
+     *    - call pifus_initialize(&callback_func)
+     *    - callback_func takes a socket*, and a operation_result
+     *    - "RX thread" runs an blocks with futex_waitv, and as soon as a result is available, callback is called
+     *    - NOTE: for this, sockets have to be held internally, and shadow variables
+     *    - NOTE: wait (poll) mode should still be available!
+     **/
+  
+    pifus_socket_wait(socket, &operation_result);
 
     printf("Result returned: opcode %s, result code %u \n",
            operation_str(operation_result.code), operation_result.result_code);

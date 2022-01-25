@@ -56,7 +56,7 @@ struct pifus_operation_result {
   enum pifus_operation_code code;
   enum pifus_result_code result_code;
 
-  // TODO: union for additional data being returned!
+  // TODO: insert into union for additional data being returned!
   // union {
   //
   // } data;

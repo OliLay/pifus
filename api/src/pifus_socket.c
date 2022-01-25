@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* local includes */
 #include "pifus.h"
@@ -79,11 +80,23 @@ void pifus_socket_bind(struct pifus_socket *socket, enum ip_type ip_type,
   enqueue_operation(socket, bind_operation);
 }
 
-void pifus_socket_poll(struct pifus_socket *socket,
+void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
-  while (!pifus_operation_result_ring_buffer_get(
-      &socket->cqueue, socket->cqueue_buffer, operation_result)) {
-    // spins
+  if (pifus_operation_result_ring_buffer_get(
+          &socket->cqueue, socket->cqueue_buffer, operation_result)) {
+    return;
+  }
+
+  while (true) {
+    if (futex_wait(&socket->cqueue_futex, socket->cqueue_futex) < 0) {
+      pifus_debug_log("pifus: futex_wait in socket_poll returned %s\n",
+                      strerror(errno));
+    } else {
+      if (pifus_operation_result_ring_buffer_get(
+              &socket->cqueue, socket->cqueue_buffer, operation_result)) {
+        return;
+      }
+    }
   }
 }
 
