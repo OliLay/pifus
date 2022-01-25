@@ -4,6 +4,8 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+#include "pifus_identifiers.h"
+
 #define OPERATIONS                                                             \
   C(TCP_BIND, 0)                                                               \
   C(TCP_LISTEN, 1)                                                             \
@@ -21,6 +23,7 @@
 #define C(k, v) k = v,
 enum pifus_operation_code { OPERATIONS };
 #undef C
+
 
 /**
  * Similar struct as lwIP lwip_ip_addr_type defined in ip_addr.h
@@ -49,6 +52,17 @@ struct pifus_operation {
     struct pifus_bind_data bind;
   } data;
 };
+
+
+/**
+ * Internal representation of an operation.
+ * Contains the operation and information about the socket.
+ */
+struct pifus_internal_operation {
+  struct pifus_operation operation;
+  struct pifus_socket_identifier socket_identifier;
+};
+
 
 enum pifus_result_code { PIFUS_OK = 0, PIFUS_ERR = 1 };
 

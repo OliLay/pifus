@@ -1,16 +1,12 @@
 #ifndef PIFUS_SHMEM_H
 #define PIFUS_SHMEM_H
 
-#include "data_structures/pifus_operation_result_ring_buffer.h"
-#include "data_structures/pifus_operation_ring_buffer.h"
+#include "stdint.h"
+
+#include "pifus_operation.h"
+#include "pifus_ring_buffer.h"
 #include "pifus_constants.h"
 #include "utils/futex.h"
-
-typedef struct pifus_operation_ring_buffer pifus_squeue;
-typedef struct pifus_operation_result_ring_buffer pifus_cqueue;
-
-typedef uint32_t app_index_t;
-typedef uint32_t socket_index_t;
 
 enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
 
@@ -21,11 +17,11 @@ struct pifus_socket {
   enum protocol protocol;
   /* squeue */
   futex_t squeue_futex;
-  pifus_squeue squeue;
+  struct pifus_operation_ring_buffer squeue;
   struct pifus_operation squeue_buffer[SQUEUE_SIZE];
   /* cqueue */
   futex_t cqueue_futex;
-  pifus_cqueue cqueue;
+  struct pifus_operation_result_ring_buffer cqueue;
   struct pifus_operation_result cqueue_buffer[CQUEUE_SIZE];
 };
 

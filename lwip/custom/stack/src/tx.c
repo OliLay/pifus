@@ -14,7 +14,7 @@
 #include "lwip/tcp.h"
 
 /* pifus */
-#include "data_structures/pifus_tx_ring_buffer.h"
+#include "pifus_ring_buffer.h"
 #include "pifus_constants.h"
 #include "pifus_shmem.h"
 #include "pifus_socket.h"

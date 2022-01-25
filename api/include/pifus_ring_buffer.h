@@ -35,28 +35,37 @@
  * <www.state-machine.com>
  * <info@state-machine.com>
  */
-#ifndef PIFUS_OPERATION_RESULT_RING_BUF_H
-#define PIFUS_OPERATION_RESULT_RING_BUF_H
+#ifndef PIFUS_RING_BUFFER
+#define PIFUS_RING_BUFFER
 
 #include <stdbool.h>
 
-#include "data_structures/pifus_operation.h"
+#include "pifus_operation.h"
 
-struct pifus_operation_result_ring_buffer {
-  uint16_t end;  /*!< offset of the end of the ring buffer */
-  uint16_t head; /*!< offset to where next byte will be inserted */
-  uint16_t tail; /*!< offset of where next byte will be extracted */
-};
+#define RING_BUFFER_STRUCT(NAME)                                               \
+  struct NAME {                                                                \
+    uint16_t end;                                                              \
+    uint16_t head;                                                             \
+    uint16_t tail;                                                             \
+  };
 
-void pifus_operation_result_ring_buffer_create(
-    struct pifus_operation_result_ring_buffer *ring_buffer,
-    uint16_t buffer_length);
+#define RING_BUFFER_CREATE(NAME)                                               \
+  void NAME##_create(struct NAME *ring_buffer, uint16_t buffer_length);
 
-bool pifus_operation_result_ring_buffer_get(
-    struct pifus_operation_result_ring_buffer *const ring_buffer,
-    struct pifus_operation_result *buf, struct pifus_operation_result *pel);
+#define RING_BUFFER_GET(NAME, ELEMENT_TYPE)                                    \
+  bool NAME##_get(struct NAME *const ring_buffer, struct ELEMENT_TYPE *buf,    \
+                  struct ELEMENT_TYPE *pel);
 
-bool pifus_operation_result_ring_buffer_put(
-    struct pifus_operation_result_ring_buffer *const ring_buffer,
-    struct pifus_operation_result *buf, struct pifus_operation_result const el);
-#endif /* PIFUS_OPERATION_RESULT_RING_BUF_H */
+#define RING_BUFFER_PUT(NAME, ELEMENT_TYPE)                                    \
+  bool NAME##_put(struct NAME *const ring_buffer, struct ELEMENT_TYPE *buf,    \
+                  struct ELEMENT_TYPE const pel);
+
+#define RING_BUFFER_HEADER_DEFS(NAME, ELEMENT_TYPE) RING_BUFFER_STRUCT(NAME) \
+RING_BUFFER_CREATE(NAME) \
+RING_BUFFER_GET(NAME, ELEMENT_TYPE) \
+RING_BUFFER_PUT(NAME, ELEMENT_TYPE)
+
+RING_BUFFER_HEADER_DEFS(pifus_operation_ring_buffer, pifus_operation)
+RING_BUFFER_HEADER_DEFS(pifus_operation_result_ring_buffer, pifus_operation_result)
+RING_BUFFER_HEADER_DEFS(pifus_tx_ring_buffer, pifus_internal_operation)
+#endif /* PIFUS_RING_BUFFER */

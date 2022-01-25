@@ -1,7 +1,7 @@
 #ifndef LWIP_STACK_H
 #define LWIP_STACK_H
 
-#include "data_structures/pifus_tx_ring_buffer.h"
+#include "pifus_ring_buffer.h"
 
 struct pifus_tx_queue {
   struct pifus_tx_ring_buffer ring_buffer;

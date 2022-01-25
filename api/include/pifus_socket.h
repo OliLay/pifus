@@ -1,7 +1,7 @@
 #ifndef PIFUS_SOCKET_H
 #define PIFUS_SOCKET_H
 
-#include "data_structures/pifus_operation_ring_buffer.h"
+#include "pifus_ring_buffer.h"
 #include "pifus_constants.h"
 #include "pifus_shmem.h"
 

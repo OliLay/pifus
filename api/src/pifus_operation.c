@@ -1,5 +1,5 @@
 /* local includes */
-#include "data_structures/pifus_operation.h"
+#include "pifus_operation.h"
 
 #define C(k, v) [v] = #k,
 const char *const operation_name[] = {OPERATIONS};
