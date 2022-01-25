@@ -1,10 +1,10 @@
 #ifndef PIFUS_FUTEX_H
 #define PIFUS_FUTEX_H
 
+#include "stdint.h"
 #include "syscall.h"
 #include "time.h"
 #include "unistd.h"
-#include "stdint.h"
 
 #include "linux/futex.h"
 
@@ -17,10 +17,10 @@ typedef uint32_t futex_t;
 #define FUTEX_32 2
 
 struct futex_waitv {
-    uint64_t val;
-    uint64_t uaddr;
-    uint32_t flags;
-    uint32_t __reserved;
+  uint64_t val;
+  uint64_t uaddr;
+  uint32_t flags;
+  uint32_t __reserved;
 };
 
 /**
@@ -30,14 +30,14 @@ struct futex_waitv {
  * @flags: Operation flags
  * @timo: Optional timeout for operation
  */
-int futex_waitv(volatile struct futex_waitv* waiters, unsigned long nr_waiters,
-                unsigned long flags, struct timespec* timo, clockid_t clockid);
+int futex_waitv(volatile struct futex_waitv *waiters, unsigned long nr_waiters,
+                unsigned long flags, struct timespec *timo, clockid_t clockid);
 
-int futex(uint32_t* uaddr, int futex_op, int val, const struct timespec* timeout,
-          int* uaddr2, int val3);
+int futex(uint32_t *uaddr, int futex_op, int val,
+          const struct timespec *timeout, int *uaddr2, int val3);
 
-int futex_wake(uint32_t* uaddr);
+int futex_wake(uint32_t *uaddr);
 
-int futex_wait(uint32_t* uaddr, uint32_t val);
+int futex_wait(uint32_t *uaddr, uint32_t val);
 
 #endif

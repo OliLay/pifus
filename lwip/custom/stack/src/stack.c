@@ -14,13 +14,14 @@
 #include "lwip/timeouts.h"
 
 /* pifus */
+#include "init.h"
 #include "pifus_shmem.h"
+#include "tx.h"
 #include "utils/futex.h"
+#include "utils/log.h"
 
 /* local includes */
-#include "init.h"
 #include "stack.h"
-#include "tx.h"
 
 /**
  * app_ptrs[#app] -> ptr to shmem app region
@@ -44,89 +45,127 @@ struct tcp_pcb *socket_tcp_pcbs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
  */
 struct pifus_tx_queue tx_queue;
 
-void process_tx_tcp_bind(struct tcp_pcb *pcb,
-                         struct pifus_internal_operation *internal_op) {
-    err_t result;
-    struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
+void enqueue_in_cqueue(struct pifus_socket *socket,
+                       struct pifus_operation_result *operation_result) {
+  pifus_operation_result_ring_buffer_put(&socket->cqueue, socket->cqueue_buffer,
+                                         *operation_result);
 
-
-    result = tcp_bind(pcb, bind_data->ip_type, bind_data->port);
-
-    // TODO: put in cqueue saying OK or not ok
-    if (result == ERR_OK) {
-        printf("pifus: bound tcp\n");
-    } else {
-        printf("pifus: could not tcp_bind!\n");
-    }
+  socket->cqueue_futex++;
+  futex_wake(&socket->cqueue_futex);
 }
 
-void process_tx_op(struct pifus_internal_operation *internal_op) {
-    if (is_tcp_operation(&internal_op->operation)) {
-        // TODO: maybe move pcb/udp lookup into tx thread and put into
-        // pifus_internal_operation
-        struct tcp_pcb *pcb =
-            socket_tcp_pcbs[internal_op->socket_identifier.app_index]
-                           [internal_op->socket_identifier.socket_index];
+struct pifus_operation_result
+tx_tcp_bind(struct tcp_pcb *pcb, struct pifus_internal_operation *internal_op) {
+  err_t result;
+  struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
 
-        switch (internal_op->operation.op) {
-            case TCP_BIND:
-                process_tx_tcp_bind(pcb, internal_op);
-                break;
-            default:
-                printf("pifus: TX op code %u is not known!\n",
-                       internal_op->operation.op);
-        }
-    } else {
-        // TODO: UDP TX handling
+  if (bind_data->ip_type == PIFUS_IPV4_ADDR) {
+    result = tcp_bind(pcb, IP4_ADDR_ANY, bind_data->port);
+  } else if (bind_data->ip_type == PIFUS_IPV6_ADDR) {
+    result = tcp_bind(pcb, IP6_ADDR_ANY, bind_data->port);
+  } else if (bind_data->ip_type == PIFUS_IPVX_ADDR) {
+    result = tcp_bind(pcb, IP_ANY_TYPE, bind_data->port);
+  } else {
+    pifus_log("pifus: unknown ip_type in bind()\n");
+  }
+
+  struct pifus_operation_result operation_result;
+  if (result == ERR_OK) {
+    pifus_debug_log("pifus: PIFUS -> lwIP tcp_bind suceeded!\n");
+    operation_result.result_code = PIFUS_OK;
+  } else {
+    pifus_log("pifus: could not tcp_bind!\n");
+    operation_result.result_code = PIFUS_ERR;
+  }
+
+  return operation_result;
+}
+
+struct pifus_operation_result
+process_tx_op(struct pifus_internal_operation *internal_op) {
+  if (is_tcp_operation(&internal_op->operation)) {
+    // TODO: maybe move pcb/udp lookup into tx thread and put into
+    // pifus_internal_operation
+    struct tcp_pcb *pcb =
+        socket_tcp_pcbs[internal_op->socket_identifier.app_index]
+                       [internal_op->socket_identifier.socket_index];
+
+    struct pifus_operation_result operation_result;
+
+    switch (internal_op->operation.code) {
+    case TCP_BIND:
+      operation_result = tx_tcp_bind(pcb, internal_op);
+      break;
+    default:
+      pifus_log("pifus: TX op code %u is not known!\n",
+                internal_op->operation.code);
     }
+
+    // set the opcode to the according one that was TX'ed
+    operation_result.code = internal_op->operation.code;
+    return operation_result;
+  } else {
+    pifus_log("pifus: UDP TX not implemented yet! bye bye \n");
+    exit(1);
+    // TODO: UDP TX handling
+  }
 }
 
 void lwip_loop_iteration(void) {
-    /** TODO:
-     * - [TODO] distribute RX packets
-     * - [IN PROGRESS] TX handling (from TX thread via queue)
+  /** TODO:
+   * - [TODO] distribute RX packets
+   * - [IN PROGRESS] TX handling (from TX thread via queue)
+   */
+
+  struct pifus_internal_operation tx_op;
+  while (pifus_tx_ring_buffer_get(&tx_queue.ring_buffer,
+                                  tx_queue.tx_queue_buffer, &tx_op)) {
+    app_index_t app_index = tx_op.socket_identifier.app_index;
+    socket_index_t socket_index = tx_op.socket_identifier.socket_index;
+
+    pifus_log("pifus: Operation received from app%u/socket%u: %s\n", app_index,
+              socket_index, operation_str(tx_op.operation.code));
+
+    struct pifus_operation_result operation_result = process_tx_op(&tx_op);
+
+    struct pifus_socket *socket = socket_ptrs[app_index][socket_index];
+
+    pifus_debug_log("pifus: Enqueuing into cqueue from socket %u in app %u\n",
+                    app_index, socket_index);
+    enqueue_in_cqueue(socket, &operation_result);
+
+    /**
+     * TODO:
+     *  - take action depending on op (e.g. call send, recv)
+     *  - for some operation types, we need a look up the operation
+     * afterwards, e.g. for recv
+     *      - we dequeue TX op here and call recv()
+     *      - recv_callback() is called later on
+     *      - we then have to look up the recv operation again to find
+     *  - for other operation types, such as write, we can directly execute
+     * the action and insert something into cqueue
      */
-
-    struct pifus_internal_operation tx_op;
-    while (pifus_tx_ring_buffer_get(&tx_queue.ring_buffer,
-                                    tx_queue.tx_queue_buffer, &tx_op)) {
-        printf("pifus: Operation received from app%u/socket%u: %s\n",
-               tx_op.socket_identifier.app_index,
-               tx_op.socket_identifier.socket_index,
-               operation_str(tx_op.operation.op));
-
-        /**
-         * TODO:
-         *  - take action depending on op (e.g. call send, recv)
-         *  - for some operation types, we need a look up the operation
-         * afterwards, e.g. for recv
-         *      - we dequeue TX op here and call recv()
-         *      - recv_callback() is called later on
-         *      - we then have to look up the recv operation again to find
-         *  - for other operation types, such as write, we can directly execute
-         * the action and insert something into cqueue
-         */
-    }
+  }
 }
 
 void lwip_init_complete(void) {
-    printf("pifus: lwip init complete.\n");
+  pifus_debug_log("pifus: lwip init complete.\n");
 
-    pifus_tx_ring_buffer_create(&tx_queue.ring_buffer, TX_QUEUE_SIZE);
-    start_tx_thread();
+  pifus_tx_ring_buffer_create(&tx_queue.ring_buffer, TX_QUEUE_SIZE);
+  start_tx_thread();
 }
 
 int main(int argc, char *argv[]) {
-    LWIP_UNUSED_ARG(argc);
-    LWIP_UNUSED_ARG(argv);
+  LWIP_UNUSED_ARG(argc);
+  LWIP_UNUSED_ARG(argv);
 
-    printf("pifus: Starting up...\n");
+  pifus_log("pifus: Starting up...\n");
 
-    ip_addr_t *stack_addr = (ip_addr_t *)malloc(sizeof(ip_addr_t));
-    ipaddr_aton("192.168.1.201", stack_addr);
+  ip_addr_t *stack_addr = (ip_addr_t *)malloc(sizeof(ip_addr_t));
+  ipaddr_aton("192.168.1.201", stack_addr);
 
-    run_lwip(&lwip_init_complete, &lwip_loop_iteration, "192.168.1.200",
-             "192.168.1.1", "255.255.255.0");
+  run_lwip(&lwip_init_complete, &lwip_loop_iteration, "192.168.1.200",
+           "192.168.1.1", "255.255.255.0");
 
-    return 0;
+  return 0;
 }

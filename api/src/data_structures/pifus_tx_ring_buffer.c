@@ -41,42 +41,42 @@
 #include <stdint.h>
 
 /*..........................................................................*/
-void pifus_tx_ring_buffer_create(struct pifus_tx_ring_buffer* ring_buffer,
+void pifus_tx_ring_buffer_create(struct pifus_tx_ring_buffer *ring_buffer,
                                  buf_index_type buffer_length) {
-    ring_buffer->end = buffer_length;
-    ring_buffer->head = 0U;
-    ring_buffer->tail = 0U;
+  ring_buffer->end = buffer_length;
+  ring_buffer->head = 0U;
+  ring_buffer->tail = 0U;
 }
 /*..........................................................................*/
-bool pifus_tx_ring_buffer_put(struct pifus_tx_ring_buffer* const ring_buffer,
-                              struct pifus_internal_operation* buf,
+bool pifus_tx_ring_buffer_put(struct pifus_tx_ring_buffer *const ring_buffer,
+                              struct pifus_internal_operation *buf,
                               struct pifus_internal_operation const el) {
-    buf_index_type head = ring_buffer->head + 1U;
-    if (head == ring_buffer->end) {
-        head = 0U;
-    }
-    if (head != ring_buffer->tail) { /* buffer NOT full? */
-        buf[ring_buffer->head] = el;
-        ring_buffer->head = head; /* update the head to a *valid* index */
-        return true;              /* element placed in the buffer */
-    } else {
-        return false; /* element NOT placed in the buffer */
-    }
+  buf_index_type head = ring_buffer->head + 1U;
+  if (head == ring_buffer->end) {
+    head = 0U;
+  }
+  if (head != ring_buffer->tail) { /* buffer NOT full? */
+    buf[ring_buffer->head] = el;
+    ring_buffer->head = head; /* update the head to a *valid* index */
+    return true;              /* element placed in the buffer */
+  } else {
+    return false; /* element NOT placed in the buffer */
+  }
 }
 /*..........................................................................*/
-bool pifus_tx_ring_buffer_get(struct pifus_tx_ring_buffer* const ring_buffer,
-                              struct pifus_internal_operation* buf,
-                              struct pifus_internal_operation* pel) {
-    buf_index_type tail = ring_buffer->tail;
-    if (ring_buffer->head != tail) { /* ring buffer NOT empty? */
-        *pel = buf[tail];
-        ++tail;
-        if (tail == ring_buffer->end) {
-            tail = 0U;
-        }
-        ring_buffer->tail = tail; /* update the tail to a *valid* index */
-        return true;
-    } else {
-        return false;
+bool pifus_tx_ring_buffer_get(struct pifus_tx_ring_buffer *const ring_buffer,
+                              struct pifus_internal_operation *buf,
+                              struct pifus_internal_operation *pel) {
+  buf_index_type tail = ring_buffer->tail;
+  if (ring_buffer->head != tail) { /* ring buffer NOT empty? */
+    *pel = buf[tail];
+    ++tail;
+    if (tail == ring_buffer->end) {
+      tail = 0U;
     }
+    ring_buffer->tail = tail; /* update the tail to a *valid* index */
+    return true;
+  } else {
+    return false;
+  }
 }

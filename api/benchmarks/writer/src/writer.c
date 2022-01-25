@@ -3,28 +3,31 @@
 #include <unistd.h>
 
 /* local includes */
-#include "writer.h"
 #include "pifus.h"
 #include "pifus_socket.h"
+#include "writer.h"
 
-int main(int argc, char *argv[])
-{
-    printf("Starting pifus_writer...\n");
+int main(int argc, char *argv[]) {
+  printf("Starting pifus_writer...\n");
 
-    pifus_initialize();
+  pifus_initialize();
 
-    struct pifus_socket* socket = pifus_socket(PROTOCOL_UDP);
-    struct pifus_socket* socket1 = pifus_socket(PROTOCOL_TCP);
+  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
+  struct pifus_socket *socket1 = pifus_socket(PROTOCOL_UDP);
 
-    pifus_socket_bind(socket, PIFUS_IPADDR_TYPE_V4, 13337);
+  pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 13337);
 
-    /* TODO: writer logic */
+  /* TODO: writer logic */
 
-    while (true) {
-        
-    }
+  struct pifus_operation_result operation_result;
+  while (true) {
+    pifus_socket_poll(socket, &operation_result);
 
-    pifus_exit();
+    printf("Result returned: opcode %s, result code %u \n",
+           operation_str(operation_result.code), operation_result.result_code);
+  }
 
-    return 0;
+  pifus_exit();
+
+  return 0;
 }

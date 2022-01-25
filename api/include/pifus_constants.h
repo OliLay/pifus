@@ -1,6 +1,9 @@
 #ifndef PIFUS_CONSTANTS_H
 #define PIFUS_CONSTANTS_H
 
+/* debug */
+#define PIFUS_DEBUG
+
 /* App shmem */
 #define SHM_APP_NAME_PREFIX "/app"
 #define SHM_APP_SIZE 100000
@@ -25,7 +28,5 @@
 #define TX_QUEUE_SIZE 1024
 #define TX_WAIT_TIMEOUT_SEC 1
 #define TX_MAX_FUTEXES_PER_THREAD 128
-
-
 
 #endif /* PIFUS_H */

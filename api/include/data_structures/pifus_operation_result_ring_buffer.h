@@ -35,48 +35,28 @@
  * <www.state-machine.com>
  * <info@state-machine.com>
  */
-#ifndef PIFUS_TX_QUEUE_H
-#define PIFUS_TX_QUEUE_H
+#ifndef PIFUS_OPERATION_RESULT_RING_BUF_H
+#define PIFUS_OPERATION_RESULT_RING_BUF_H
 
 #include <stdbool.h>
 
 #include "data_structures/pifus_operation.h"
-#include "pifus_shmem.h"
 
-/**
- * TODO:
- *  - think about writing macro for generating ring_buffer functions
- */
-
-/** Uniquely identifies a socket. */
-struct pifus_socket_identifier {
-  app_index_t app_index;
-  socket_index_t socket_index;
+struct pifus_operation_result_ring_buffer {
+  uint16_t end;  /*!< offset of the end of the ring buffer */
+  uint16_t head; /*!< offset to where next byte will be inserted */
+  uint16_t tail; /*!< offset of where next byte will be extracted */
 };
 
-/**
- * Internal representation of an operation.
- * Contains the operation and information about the socket.
- */
-struct pifus_internal_operation {
-  struct pifus_operation operation;
-  struct pifus_socket_identifier socket_identifier;
-};
+void pifus_operation_result_ring_buffer_create(
+    struct pifus_operation_result_ring_buffer *ring_buffer,
+    uint16_t buffer_length);
 
-struct pifus_tx_ring_buffer {
-  buf_index_type end;  /*!< offset of the end of the ring buffer */
-  buf_index_type head; /*!< offset to where next byte will be inserted */
-  buf_index_type tail; /*!< offset of where next byte will be extracted */
-};
+bool pifus_operation_result_ring_buffer_get(
+    struct pifus_operation_result_ring_buffer *const ring_buffer,
+    struct pifus_operation_result *buf, struct pifus_operation_result *pel);
 
-void pifus_tx_ring_buffer_create(struct pifus_tx_ring_buffer *ring_buffer,
-                                 buf_index_type buffer_length);
-
-bool pifus_tx_ring_buffer_get(struct pifus_tx_ring_buffer *const ring_buffer,
-                              struct pifus_internal_operation *buf,
-                              struct pifus_internal_operation *pel);
-
-bool pifus_tx_ring_buffer_put(struct pifus_tx_ring_buffer *const ring_buffer,
-                              struct pifus_internal_operation *buf,
-                              struct pifus_internal_operation const el);
-#endif /* PIFUS_TX_QUEUE_H */
+bool pifus_operation_result_ring_buffer_put(
+    struct pifus_operation_result_ring_buffer *const ring_buffer,
+    struct pifus_operation_result *buf, struct pifus_operation_result const el);
+#endif /* PIFUS_OPERATION_RESULT_RING_BUF_H */

@@ -46,19 +46,20 @@ typedef struct pifus_operation ring_buf_elem;
 typedef uint16_t buf_index_type;
 
 struct pifus_operation_ring_buffer {
-    buf_index_type end;  /*!< offset of the end of the ring buffer */
-    buf_index_type head; /*!< offset to where next byte will be inserted */
-    buf_index_type tail; /*!< offset of where next byte will be extracted */
+  buf_index_type end;  /*!< offset of the end of the ring buffer */
+  buf_index_type head; /*!< offset to where next byte will be inserted */
+  buf_index_type tail; /*!< offset of where next byte will be extracted */
 };
 
 void pifus_operation_ring_buffer_create(
-    struct pifus_operation_ring_buffer* ring_buffer, buf_index_type buffer_length);
+    struct pifus_operation_ring_buffer *ring_buffer,
+    buf_index_type buffer_length);
 
 bool pifus_operation_ring_buffer_get(
-    struct pifus_operation_ring_buffer* const ring_buffer, ring_buf_elem* buf,
-    ring_buf_elem* pel);
+    struct pifus_operation_ring_buffer *const ring_buffer, ring_buf_elem *buf,
+    ring_buf_elem *pel);
 
 bool pifus_operation_ring_buffer_put(
-    struct pifus_operation_ring_buffer* const ring_buffer, ring_buf_elem* buf,
+    struct pifus_operation_ring_buffer *const ring_buffer, ring_buf_elem *buf,
     ring_buf_elem const el);
 #endif /* PIFUS_OPERATION_RING_BUF_H */

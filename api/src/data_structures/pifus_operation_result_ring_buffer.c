@@ -35,24 +35,25 @@
  * <www.state-machine.com>
  * <info@state-machine.com>
  */
-#include "data_structures/pifus_operation_ring_buffer.h"
+#include "data_structures/pifus_operation_result_ring_buffer.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 
 /*..........................................................................*/
-void pifus_operation_ring_buffer_create(
-    struct pifus_operation_ring_buffer *ring_buffer,
-    buf_index_type buffer_length) {
+void pifus_operation_result_ring_buffer_create(
+    struct pifus_operation_result_ring_buffer *ring_buffer,
+    uint16_t buffer_length) {
   ring_buffer->end = buffer_length;
   ring_buffer->head = 0U;
   ring_buffer->tail = 0U;
 }
 /*..........................................................................*/
-bool pifus_operation_ring_buffer_put(
-    struct pifus_operation_ring_buffer *const ring_buffer, ring_buf_elem *buf,
-    ring_buf_elem const el) {
-  buf_index_type head = ring_buffer->head + 1U;
+bool pifus_operation_result_ring_buffer_put(
+    struct pifus_operation_result_ring_buffer *const ring_buffer,
+    struct pifus_operation_result *buf,
+    struct pifus_operation_result const el) {
+  uint16_t head = ring_buffer->head + 1U;
   if (head == ring_buffer->end) {
     head = 0U;
   }
@@ -65,10 +66,10 @@ bool pifus_operation_ring_buffer_put(
   }
 }
 /*..........................................................................*/
-bool pifus_operation_ring_buffer_get(
-    struct pifus_operation_ring_buffer *const ring_buffer, ring_buf_elem *buf,
-    ring_buf_elem *pel) {
-  buf_index_type tail = ring_buffer->tail;
+bool pifus_operation_result_ring_buffer_get(
+    struct pifus_operation_result_ring_buffer *const ring_buffer,
+    struct pifus_operation_result *buf, struct pifus_operation_result *pel) {
+  uint16_t tail = ring_buffer->tail;
   if (ring_buffer->head != tail) { /* ring buffer NOT empty? */
     *pel = buf[tail];
     ++tail;
