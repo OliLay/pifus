@@ -2,6 +2,7 @@
 #define PIFUS_OPERATION_H
 
 #include "stdint.h"
+#include "stdbool.h"
 
 #define OPERATIONS  C(TCP_BIND, 0)\
                     C(TCP_LISTEN, 1)\
@@ -22,11 +23,36 @@ enum operation_code {
 };
 #undef C
 
+/**
+ * Same struct as lwIP lwip_ip_addr_type defined in ip_addr.h
+ */
+enum ip_type {
+  /** IPv4 */
+  PIFUS_IPADDR_TYPE_V4 =   0U,
+  /** IPv6 */
+  PIFUS_IPADDR_TYPE_V6 =   6U,
+  /** IPv4+IPv6 ("dual-stack") */
+  PIFUS_IPADDR_TYPE_ANY = 46U
+};
+
+/**
+ * Data needed for the bind operation.
+ */
+struct pifus_bind_data {
+    enum ip_type ip_type;
+    uint16_t port;
+};
+
 struct pifus_operation {
     enum operation_code op;
-    // TODO: arguments? e.g. connect
+
+    union {
+        struct pifus_bind_data bind;
+    } data;
 };
 
 const char* operation_str(enum operation_code operation_code);
+
+bool is_tcp_operation(struct pifus_operation* operation);
 
 #endif

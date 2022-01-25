@@ -10,6 +10,9 @@
 #include "string.h"
 #include "time.h"
 
+/* lwip */
+#include "lwip/tcp.h"
+
 /* pifus */
 #include "data_structures/pifus_tx_ring_buffer.h"
 #include "pifus_constants.h"
@@ -44,22 +47,26 @@ void map_new_sockets(app_index_t app_index) {
 
     if (current_highest_index < app_highest_index) {
         char *shm_name;
-        for (socket_index_t i = current_highest_index + 1;
-             i <= app_highest_index; i++) {
+        for (socket_index_t socket_index = current_highest_index + 1;
+             socket_index <= app_highest_index; socket_index++) {
             asprintf(&shm_name, "%s%u%s%u", SHM_APP_NAME_PREFIX, app_index,
-                     SHM_SOCKET_NAME_PREFIX, i);
+                     SHM_SOCKET_NAME_PREFIX, socket_index);
 
             int fd = shm_open_region(shm_name, false);
 
             if (fd < 0) {
                 printf("pifus_tx: failed to map '%s' with errno %i\n", shm_name,
                        errno);
+            } else {
+                socket_ptrs[app_index][socket_index] =
+                    (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE,
+                                                          false);
+
+                socket_tcp_pcbs[app_index][socket_index] = tcp_new();
             }
 
-            socket_ptrs[app_index][i] = (struct pifus_socket *)shm_map_region(
-                fd, SHM_SOCKET_SIZE, false);
-
-            printf("pifus_tx: Mapped socket %u for app %u\n", i, app_index);
+            printf("pifus_tx: Mapped socket %u for app %u\n", socket_index,
+                   app_index);
             free(shm_name);
         }
     }

@@ -16,18 +16,9 @@ int main(int argc, char *argv[])
     struct pifus_socket* socket = pifus_socket(PROTOCOL_UDP);
     struct pifus_socket* socket1 = pifus_socket(PROTOCOL_TCP);
 
-    const struct pifus_operation op = {.op = UDP_CONNECT};
-    enqueue_operation(socket, op);
-
-    const struct pifus_operation op1 = {.op = TCP_ABORT};
-    enqueue_operation(socket1, op1);
+    pifus_socket_bind(socket, PIFUS_IPADDR_TYPE_V4, 13337);
 
     /* TODO: writer logic */
-
-    sleep(10);
-
-    const struct pifus_operation op2 = {.op = TCP_BIND};
-    enqueue_operation(socket1, op2);
 
     while (true) {
         

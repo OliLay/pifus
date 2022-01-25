@@ -36,9 +36,50 @@ app_index_t next_app_number = 0;
  */
 struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 /**
+ * Socket tcp_pcbs pointers (representing the lwIP connection)
+ */
+struct tcp_pcb *socket_tcp_pcbs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+/**
  * TX operations from all sockets.
  */
 struct pifus_tx_queue tx_queue;
+
+void process_tx_tcp_bind(struct tcp_pcb *pcb,
+                         struct pifus_internal_operation *internal_op) {
+    err_t result;
+    struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
+
+
+    result = tcp_bind(pcb, bind_data->ip_type, bind_data->port);
+
+    // TODO: put in cqueue saying OK or not ok
+    if (result == ERR_OK) {
+        printf("pifus: bound tcp\n");
+    } else {
+        printf("pifus: could not tcp_bind!\n");
+    }
+}
+
+void process_tx_op(struct pifus_internal_operation *internal_op) {
+    if (is_tcp_operation(&internal_op->operation)) {
+        // TODO: maybe move pcb/udp lookup into tx thread and put into
+        // pifus_internal_operation
+        struct tcp_pcb *pcb =
+            socket_tcp_pcbs[internal_op->socket_identifier.app_index]
+                           [internal_op->socket_identifier.socket_index];
+
+        switch (internal_op->operation.op) {
+            case TCP_BIND:
+                process_tx_tcp_bind(pcb, internal_op);
+                break;
+            default:
+                printf("pifus: TX op code %u is not known!\n",
+                       internal_op->operation.op);
+        }
+    } else {
+        // TODO: UDP TX handling
+    }
+}
 
 void lwip_loop_iteration(void) {
     /** TODO:

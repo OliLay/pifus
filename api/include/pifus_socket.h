@@ -12,7 +12,7 @@
  */
 struct pifus_socket* pifus_socket(enum protocol protocol);
 
-void enqueue_operation(struct pifus_socket* socket, struct pifus_operation const op);
+void pifus_socket_bind(struct pifus_socket* socket, enum ip_type ip_type, uint16_t port);
 
 void pifus_socket_exit_all(void);
 
