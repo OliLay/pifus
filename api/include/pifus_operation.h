@@ -24,7 +24,6 @@
 enum pifus_operation_code { OPERATIONS };
 #undef C
 
-
 /**
  * Similar struct as lwIP lwip_ip_addr_type defined in ip_addr.h
  */
@@ -53,7 +52,6 @@ struct pifus_operation {
   } data;
 };
 
-
 /**
  * Internal representation of an operation.
  * Contains the operation and information about the socket.
@@ -61,8 +59,14 @@ struct pifus_operation {
 struct pifus_internal_operation {
   struct pifus_operation operation;
   struct pifus_socket_identifier socket_identifier;
-};
 
+  union {
+    /** void pointers because this header file is also used on client side which
+     * does not have access to lwIP */
+    void *tcp;
+    void *udp;
+  } pcb;
+};
 
 enum pifus_result_code { PIFUS_OK = 0, PIFUS_ERR = 1 };
 

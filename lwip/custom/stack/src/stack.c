@@ -55,9 +55,10 @@ void enqueue_in_cqueue(struct pifus_socket *socket,
 }
 
 struct pifus_operation_result
-tx_tcp_bind(struct tcp_pcb *pcb, struct pifus_internal_operation *internal_op) {
+tx_tcp_bind(struct pifus_internal_operation *internal_op) {
   err_t result;
   struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
+  struct tcp_pcb *pcb = internal_op->pcb.tcp;
 
   if (bind_data->ip_type == PIFUS_IPV4_ADDR) {
     result = tcp_bind(pcb, IP4_ADDR_ANY, bind_data->port);
@@ -84,17 +85,14 @@ tx_tcp_bind(struct tcp_pcb *pcb, struct pifus_internal_operation *internal_op) {
 struct pifus_operation_result
 process_tx_op(struct pifus_internal_operation *internal_op) {
   if (is_tcp_operation(&internal_op->operation)) {
-    // TODO: maybe move pcb/udp lookup into tx thread and put into
-    // pifus_internal_operation
-    struct tcp_pcb *pcb =
+    internal_op->pcb.tcp =
         socket_tcp_pcbs[internal_op->socket_identifier.app_index]
                        [internal_op->socket_identifier.socket_index];
 
     struct pifus_operation_result operation_result;
-
     switch (internal_op->operation.code) {
     case TCP_BIND:
-      operation_result = tx_tcp_bind(pcb, internal_op);
+      operation_result = tx_tcp_bind(internal_op);
       break;
     default:
       pifus_log("pifus: TX op code %u is not known!\n",

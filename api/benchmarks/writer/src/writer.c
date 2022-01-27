@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
      *    - call pifus_initialize(&callback_func)
      *    - callback_func takes a socket*, and a operation_result
      *    - "RX thread" runs an blocks with futex_waitv, and as soon as a result is available, callback is called
-     *    - NOTE: for this, sockets have to be held internally, and shadow variables
+     *    - NOTE: for this, sockets have to be held internally, and shadow variables of futexes
      *    - NOTE: wait (poll) mode should still be available!
      **/
   
