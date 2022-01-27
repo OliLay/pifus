@@ -16,29 +16,14 @@ enum pifus_ip_type {
   PIFUS_IPVX_ADDR = 46U
 };
 
-/**
- * Similar struct as lwIP ip4_addr defined in ip4_addr.h
- */
-struct pifus_ip4_addr {
-  uint32_t addr;
-};
 
 /**
- * Similar struct as lwIP ip6_addr defined in ip6_addr.h
- */
-struct pifus_ip6_addr {
-  uint32_t addr[4];
-};
-
-/**
- * Similar struct as lwIP ip_addr defined in ip_addr.h
+ * IP addr in string form.
  */
 struct pifus_ip_addr {
-  union {
-    struct pifus_ip6_addr ip6;
-    struct pifus_ip4_addr ip4;
-  } u_addr;
-  uint8_t type;
+  char value[45];
 };
+
+void ip_addr_from_string(char *str, struct pifus_ip_addr* pifus_ip_addr);
 
 #endif

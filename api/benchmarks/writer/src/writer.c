@@ -5,6 +5,7 @@
 /* local includes */
 #include "pifus.h"
 #include "pifus_socket.h"
+#include "pifus_ip.h"
 #include "writer.h"
 
 void print_result(struct pifus_operation_result* result) {
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
   struct pifus_socket *socket1 = pifus_socket(PROTOCOL_UDP);
 
-  pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 13337);
+  pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 50113);
 
   /* TODO: writer logic */
 
@@ -28,8 +29,10 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-// TODO: 
-  //pifus_socket_connect(socket, )
+  struct pifus_ip_addr remote_addr;
+  ip_addr_from_string("192.168.1.201", &remote_addr);
+  pifus_socket_connect(socket, remote_addr, 11337);
+  
   while (true) {
     pifus_socket_wait(socket, &operation_result);
     print_result(&operation_result);
