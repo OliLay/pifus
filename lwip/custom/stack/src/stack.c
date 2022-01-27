@@ -37,16 +37,15 @@ app_index_t next_app_number = 0;
  */
 struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 /**
- * Socket tcp_pcbs pointers (representing the lwIP connection)
- */
-struct tcp_pcb *socket_tcp_pcbs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
-/**
  * TX operations from all sockets.
  */
 struct pifus_tx_queue tx_queue;
 
 void enqueue_in_cqueue(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
+  pifus_debug_log("pifus: Enqueuing into cqueue from socket %u in app %u\n",
+                  socket->identifier.socket_index,
+                  socket->identifier.app_index);
   pifus_operation_result_ring_buffer_put(&socket->cqueue, socket->cqueue_buffer,
                                          *operation_result);
 
@@ -54,11 +53,60 @@ void enqueue_in_cqueue(struct pifus_socket *socket,
   futex_wake(&socket->cqueue_futex);
 }
 
+err_t tcp_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {
+  struct pifus_socket *socket = arg;
+  pifus_debug_log(
+      "pifus: tcp_connected_callback called for socket %u in app %u!\n",
+      socket->identifier.socket_index, socket->identifier.app_index);
+
+  struct pifus_operation_result operation_result;
+  operation_result.code = TCP_CONNECT;
+  operation_result.result_code = PIFUS_OK;
+
+  enqueue_in_cqueue(socket, &operation_result);
+
+  return ERR_OK;
+}
+
+void tcp_err_callback(void *arg, err_t err) {
+  struct pifus_socket *socket = arg;
+  pifus_log("pifus: tcp_err_callback called for socket %u in app %u!\n",
+            socket->identifier.socket_index, socket->identifier.app_index);
+
+  /**
+   * TODO: error handling. insert special op_result into cqueue, telling that
+   * the connection was aborted. Maybe set socket->identifier.pcb.tcp to NULL
+   * as this has been free'd by lwIP.
+   */
+}
+
+struct pifus_operation_result
+tx_tcp_connect(struct pifus_internal_operation *internal_op) {
+  struct pifus_connect_data *connect_data =
+      &internal_op->operation.data.connect;
+  struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
+
+  err_t result =
+      tcp_connect(pcb, (const struct ip_addr *)&connect_data->ip_addr,
+                  connect_data->port, &tcp_connected_callback);
+
+  struct pifus_operation_result operation_result;
+  if (result == ERR_OK) {
+    pifus_debug_log("pifus: PIFUS -> lwIP tcp_connect succeeded!\n");
+    operation_result.result_code = PIFUS_ASYNC;
+  } else {
+    pifus_log("pifus: could not tcp_connect!\n");
+    operation_result.result_code = PIFUS_ERR;
+  }
+
+  return operation_result;
+}
+
 struct pifus_operation_result
 tx_tcp_bind(struct pifus_internal_operation *internal_op) {
   err_t result;
   struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
-  struct tcp_pcb *pcb = internal_op->pcb.tcp;
+  struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
 
   if (bind_data->ip_type == PIFUS_IPV4_ADDR) {
     result = tcp_bind(pcb, IP4_ADDR_ANY, bind_data->port);
@@ -72,7 +120,7 @@ tx_tcp_bind(struct pifus_internal_operation *internal_op) {
 
   struct pifus_operation_result operation_result;
   if (result == ERR_OK) {
-    pifus_debug_log("pifus: PIFUS -> lwIP tcp_bind suceeded!\n");
+    pifus_debug_log("pifus: PIFUS -> lwIP tcp_bind succeeded!\n");
     operation_result.result_code = PIFUS_OK;
   } else {
     pifus_log("pifus: could not tcp_bind!\n");
@@ -84,29 +132,36 @@ tx_tcp_bind(struct pifus_internal_operation *internal_op) {
 
 struct pifus_operation_result
 process_tx_op(struct pifus_internal_operation *internal_op) {
-  if (is_tcp_operation(&internal_op->operation)) {
-    internal_op->pcb.tcp =
-        socket_tcp_pcbs[internal_op->socket_identifier.app_index]
-                       [internal_op->socket_identifier.socket_index];
+  struct pifus_operation_result operation_result;
 
-    struct pifus_operation_result operation_result;
+  if (is_tcp_operation(&internal_op->operation)) {
+    if (internal_op->socket->pcb.tcp == NULL) {
+      // this has to happen in the main lwIP thread, as calling tcp_* funcs is
+      // not safe in the TX thread
+      internal_op->socket->pcb.tcp = tcp_new();
+      tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
+    }
+
     switch (internal_op->operation.code) {
     case TCP_BIND:
       operation_result = tx_tcp_bind(internal_op);
+      break;
+    case TCP_CONNECT:
+      operation_result = tx_tcp_connect(internal_op);
       break;
     default:
       pifus_log("pifus: TX op code %u is not known!\n",
                 internal_op->operation.code);
     }
-
-    // set the opcode to the according one that was TX'ed
-    operation_result.code = internal_op->operation.code;
-    return operation_result;
   } else {
     pifus_log("pifus: UDP TX not implemented yet! bye bye \n");
     exit(1);
     // TODO: UDP TX handling
   }
+
+  // set the opcode to the according one that was TX'ed
+  operation_result.code = internal_op->operation.code;
+  return operation_result;
 }
 
 void lwip_loop_iteration(void) {
@@ -118,19 +173,21 @@ void lwip_loop_iteration(void) {
   struct pifus_internal_operation tx_op;
   while (pifus_tx_ring_buffer_get(&tx_queue.ring_buffer,
                                   tx_queue.tx_queue_buffer, &tx_op)) {
-    app_index_t app_index = tx_op.socket_identifier.app_index;
-    socket_index_t socket_index = tx_op.socket_identifier.socket_index;
+    app_index_t app_index = tx_op.socket->identifier.app_index;
+    socket_index_t socket_index = tx_op.socket->identifier.socket_index;
 
     pifus_log("pifus: Operation received from app%u/socket%u: %s\n", app_index,
               socket_index, operation_str(tx_op.operation.code));
 
     struct pifus_operation_result operation_result = process_tx_op(&tx_op);
 
-    struct pifus_socket *socket = socket_ptrs[app_index][socket_index];
-
-    pifus_debug_log("pifus: Enqueuing into cqueue from socket %u in app %u\n",
-                    app_index, socket_index);
-    enqueue_in_cqueue(socket, &operation_result);
+    if (operation_result.result_code == PIFUS_ASYNC) {
+      pifus_debug_log("pifus: Async operation triggered in lwIP, not enqueing "
+                      "into cqueue for %u in app %u\n",
+                      app_index, socket_index);
+    } else {
+      enqueue_in_cqueue(tx_op.socket, &operation_result);
+    }
 
     /**
      * TODO:

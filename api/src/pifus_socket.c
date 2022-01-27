@@ -64,7 +64,7 @@ struct pifus_socket *pifus_socket(enum protocol protocol) {
   return socket;
 }
 
-void pifus_socket_bind(struct pifus_socket *socket, enum ip_type ip_type,
+void pifus_socket_bind(struct pifus_socket *socket, enum pifus_ip_type ip_type,
                        uint16_t port) {
   struct pifus_operation bind_operation;
 
@@ -78,6 +78,22 @@ void pifus_socket_bind(struct pifus_socket *socket, enum ip_type ip_type,
   bind_operation.data.bind.port = port;
 
   enqueue_operation(socket, bind_operation);
+}
+
+void pifus_socket_connect(struct pifus_socket *socket,
+                          struct pifus_ip_addr ip_addr, uint16_t port) {
+  struct pifus_operation connect_operation;
+
+  if (socket->protocol == PROTOCOL_TCP) {
+    connect_operation.code = TCP_CONNECT;
+  } else {
+    connect_operation.code = UDP_CONNECT;
+  }
+
+  connect_operation.data.connect.ip_addr = ip_addr;
+  connect_operation.data.connect.port = port;
+
+  enqueue_operation(socket, connect_operation);
 }
 
 void pifus_socket_wait(struct pifus_socket *socket,

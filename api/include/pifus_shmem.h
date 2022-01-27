@@ -6,6 +6,7 @@
 #include "pifus_operation.h"
 #include "pifus_ring_buffer.h"
 #include "pifus_constants.h"
+#include "pifus_identifiers.h"
 #include "utils/futex.h"
 
 enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
@@ -15,6 +16,7 @@ enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
  */
 struct pifus_socket {
   enum protocol protocol;
+  struct pifus_socket_identifier identifier;
   /* squeue */
   futex_t squeue_futex;
   struct pifus_operation_ring_buffer squeue;
@@ -23,6 +25,14 @@ struct pifus_socket {
   futex_t cqueue_futex;
   struct pifus_operation_result_ring_buffer cqueue;
   struct pifus_operation_result cqueue_buffer[CQUEUE_SIZE];
+  /* internal lwIP mapping */
+  union {
+    /** void pointers because this header file is also used on client side which
+     * does not have access to lwIP. 
+     * ATTENTION: These pointers are only valid on stack-side! */
+    void *tcp;
+    void *udp;
+  } pcb;
 };
 
 /**

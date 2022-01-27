@@ -14,8 +14,8 @@
 #include "lwip/tcp.h"
 
 /* pifus */
-#include "pifus_ring_buffer.h"
 #include "pifus_constants.h"
+#include "pifus_ring_buffer.h"
 #include "pifus_shmem.h"
 #include "pifus_socket.h"
 #include "stack.h"
@@ -33,7 +33,7 @@ socket_index_t app_local_highest_socket_number[MAX_APP_AMOUNT];
 /** futex nr to app_index **/
 app_index_t app_from_futex_nr[MAX_APP_AMOUNT];
 /** futex nr to pifus_socket_identifier **/
-struct pifus_socket_identifier socket_from_futex_nr[MAX_SOCKETS_PER_APP];
+struct pifus_socket *socket_from_futex_nr[MAX_SOCKETS_PER_APP];
 
 /**
  * @brief Maps new sockets (if any) for the app with the given index.
@@ -58,10 +58,12 @@ void map_new_sockets(app_index_t app_index) {
         pifus_log("pifus_tx: failed to map '%s' with errno %i\n", shm_name,
                   errno);
       } else {
-        socket_ptrs[app_index][socket_index] =
-            (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, false);
+        struct pifus_socket *socket =
+            shm_map_region(fd, SHM_SOCKET_SIZE, false);
+        socket_ptrs[app_index][socket_index] = socket;
 
-        socket_tcp_pcbs[app_index][socket_index] = tcp_new();
+        socket->identifier.app_index = app_index;
+        socket->identifier.socket_index = socket_index;
       }
 
       pifus_log("pifus_tx: Mapped socket %u for app %u\n", socket_index,
@@ -112,26 +114,25 @@ void handle_new_sockets(app_index_t app_index) {
 /**
  * @brief Handles event of a 'put' in the squeue of a particular socket.
  *
- * @param socket_identifier Unique identifier of the socket.
+ * @param socket Ptr to the socket
  * squeue.
  */
-void handle_squeue_change(struct pifus_socket_identifier socket_identifier) {
+void handle_squeue_change(struct pifus_socket *socket) {
   pifus_log("pifus_tx: new operation in squeue from socket %u in app %u\n",
-            socket_identifier.socket_index, socket_identifier.app_index);
+            socket->identifier.socket_index, socket->identifier.app_index);
 
-  struct pifus_socket *socket =
-      socket_ptrs[socket_identifier.app_index][socket_identifier.socket_index];
+  app_index_t *app_index = &socket->identifier.app_index;
+  socket_index_t *socket_index = &socket->identifier.socket_index;
 
   // refresh shadow variable of futex
-  socket_futexes[socket_identifier.app_index][socket_identifier.socket_index] =
-      socket->squeue_futex;
+  socket_futexes[*app_index][*socket_index] = socket->squeue_futex;
 
   struct pifus_operation op;
   if (pifus_operation_ring_buffer_get(&socket->squeue, socket->squeue_buffer,
                                       &op)) {
     struct pifus_internal_operation internal_op;
     internal_op.operation = op;
-    internal_op.socket_identifier = socket_identifier;
+    internal_op.socket = socket;
     pifus_tx_ring_buffer_put(&tx_queue.ring_buffer, tx_queue.tx_queue_buffer,
                              internal_op);
   }
@@ -171,10 +172,9 @@ uint8_t fill_waitv(void) {
         if (current_socket_ptr != NULL) {
           if (current_socket_ptr->squeue_futex !=
               socket_futexes[app_index][socket_index]) {
-            struct pifus_socket_identifier socket_identifier;
-            socket_identifier.app_index = app_index;
-            socket_identifier.socket_index = socket_index;
-            handle_squeue_change(socket_identifier);
+            current_socket_ptr->identifier.app_index = app_index;
+            current_socket_ptr->identifier.socket_index = socket_index;
+            handle_squeue_change(current_socket_ptr);
           }
 
           waitvs[current_amount_futexes].uaddr =
@@ -184,9 +184,7 @@ uint8_t fill_waitv(void) {
               socket_futexes[app_index][socket_index];
           waitvs[current_amount_futexes].__reserved = 0;
 
-          socket_from_futex_nr[current_amount_futexes].app_index = app_index;
-          socket_from_futex_nr[current_amount_futexes].socket_index =
-              socket_index;
+          socket_from_futex_nr[current_amount_futexes] = current_socket_ptr;
 
           current_amount_futexes++;
         }
@@ -224,8 +222,7 @@ void *tx_thread_loop(void *arg) {
       if (ret_code >= 0) {
         struct futex_waitv signaled_wait = waitvs[ret_code];
 
-        if (socket_from_futex_nr[ret_code].socket_index ==
-            NON_EXISTENT_SOCKET_INDEX) {
+        if (socket_from_futex_nr[ret_code] == NULL) {
           handle_new_sockets(app_from_futex_nr[ret_code]);
         } else {
           handle_squeue_change(socket_from_futex_nr[ret_code]);

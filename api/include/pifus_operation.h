@@ -5,6 +5,7 @@
 #include "stdint.h"
 
 #include "pifus_identifiers.h"
+#include "pifus_ip.h"
 
 #define OPERATIONS                                                             \
   C(TCP_BIND, 0)                                                               \
@@ -25,22 +26,19 @@ enum pifus_operation_code { OPERATIONS };
 #undef C
 
 /**
- * Similar struct as lwIP lwip_ip_addr_type defined in ip_addr.h
- */
-enum ip_type {
-  /** IPv4 */
-  PIFUS_IPV4_ADDR = 0U,
-  /** IPv6 */
-  PIFUS_IPV6_ADDR = 6U,
-  /** IPv4+IPv6 ("dual-stack") */
-  PIFUS_IPVX_ADDR = 46U
-};
-
-/**
  * Data needed for the bind operation.
  */
 struct pifus_bind_data {
-  enum ip_type ip_type;
+  enum pifus_ip_type ip_type;
+  uint16_t port;
+};
+
+
+/**
+ * Data needed for the connect operation.
+ */
+struct pifus_connect_data {
+  struct pifus_ip_addr ip_addr;
   uint16_t port;
 };
 
@@ -49,6 +47,7 @@ struct pifus_operation {
 
   union {
     struct pifus_bind_data bind;
+    struct pifus_connect_data connect;
   } data;
 };
 
@@ -58,17 +57,10 @@ struct pifus_operation {
  */
 struct pifus_internal_operation {
   struct pifus_operation operation;
-  struct pifus_socket_identifier socket_identifier;
-
-  union {
-    /** void pointers because this header file is also used on client side which
-     * does not have access to lwIP */
-    void *tcp;
-    void *udp;
-  } pcb;
+  struct pifus_socket* socket;
 };
 
-enum pifus_result_code { PIFUS_OK = 0, PIFUS_ERR = 1 };
+enum pifus_result_code { PIFUS_OK = 0, PIFUS_ERR = 1, PIFUS_ASYNC = 2 };
 
 struct pifus_operation_result {
   enum pifus_operation_code code;
