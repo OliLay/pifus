@@ -2,6 +2,7 @@
 #define PIFUS_OPERATION_H
 
 #include "stdbool.h"
+#include "stddef.h"
 #include "stdint.h"
 
 #include "pifus_identifiers.h"
@@ -20,7 +21,8 @@
   C(UDP_CONNECT, 101)                                                          \
   C(UDP_DISCONNECT, 102)                                                       \
   C(UDP_SEND, 103)                                                             \
-  C(UDP_RECV, 104)
+  C(UDP_RECV, 104)                                                             \
+  C(CONNECTION_LOST, 200)
 #define C(k, v) k = v,
 enum pifus_operation_code { OPERATIONS };
 #undef C
@@ -33,7 +35,6 @@ struct pifus_bind_data {
   uint16_t port;
 };
 
-
 /**
  * Data needed for the connect operation.
  */
@@ -42,22 +43,31 @@ struct pifus_connect_data {
   uint16_t port;
 };
 
+/**
+ * Data needed for the write operation.
+ */
+struct pifus_write_data {
+  void *data;
+  size_t size;
+};
+
 struct pifus_operation {
   enum pifus_operation_code code;
 
   union {
     struct pifus_bind_data bind;
     struct pifus_connect_data connect;
+    struct pifus_write_data write;
   } data;
 };
 
 /**
  * Internal representation of an operation.
- * Contains the operation and information about the socket.
+ * Contains the operation and a pointer to the socket.
  */
 struct pifus_internal_operation {
   struct pifus_operation operation;
-  struct pifus_socket* socket;
+  struct pifus_socket *socket;
 };
 
 enum pifus_result_code { PIFUS_OK = 0, PIFUS_ERR = 1, PIFUS_ASYNC = 2 };

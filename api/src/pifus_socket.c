@@ -96,6 +96,28 @@ void pifus_socket_connect(struct pifus_socket *socket,
   enqueue_operation(socket, connect_operation);
 }
 
+void pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
+    struct pifus_operation write_operation;
+
+  if (socket->protocol == PROTOCOL_TCP) {
+    write_operation.code = TCP_WRITE;
+  } else {
+    // TODO: maybe write wrapper for socket_send for UDP
+    write_operation.code = UDP_SEND;
+  }
+
+  /**
+   * TODO: copy data into shared memory (app region), malloc like algorithm,
+   * then the data ptr should just be an offset to app regions beginning
+   * NOTE: maybe check ptrdiff_t out (if it can help)
+   */
+  //write_operation.data.write.data = data;
+  write_operation.data.write.size = size;
+
+  enqueue_operation(socket, write_operation);
+}
+
+
 void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
   if (pifus_operation_result_ring_buffer_get(

@@ -73,11 +73,33 @@ void tcp_err_callback(void *arg, err_t err) {
   pifus_log("pifus: tcp_err_callback called for socket %u in app %u!\n",
             socket->identifier.socket_index, socket->identifier.app_index);
 
-  /**
-   * TODO: error handling. insert special op_result into cqueue, telling that
-   * the connection was aborted. Maybe set socket->identifier.pcb.tcp to NULL
-   * as this has been free'd by lwIP.
-   */
+  // this was free'd by lwIP automatically, before err_callback is called
+  socket->pcb.tcp = NULL;
+
+  struct pifus_operation_result operation_result;
+  operation_result.code = CONNECTION_LOST;
+  operation_result.result_code = PIFUS_ERR;
+
+  enqueue_in_cqueue(socket, &operation_result);
+}
+
+struct pifus_operation_result
+tx_tcp_write(struct pifus_internal_operation *internal_op) {
+  struct pifus_write_data *write_data = &internal_op->operation.data.write;
+  struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
+
+  err_t result = tcp_write(pcb, write_data->data, write_data->size, 0);
+
+  struct pifus_operation_result operation_result;
+  if (result == ERR_OK) {
+    pifus_debug_log("pifus: PIFUS -> lwIP tcp_write succeeded!\n");
+    operation_result.result_code = PIFUS_OK;
+  } else {
+    pifus_log("pifus: could not tcp_write!\n");
+    operation_result.result_code = PIFUS_ERR;
+  }
+
+  return operation_result;
 }
 
 struct pifus_operation_result
@@ -94,7 +116,8 @@ tx_tcp_connect(struct pifus_internal_operation *internal_op) {
 
   struct pifus_operation_result operation_result;
   if (result == ERR_OK) {
-    pifus_debug_log("pifus: PIFUS -- *async* --> lwIP tcp_connect succeeded!\n");
+    pifus_debug_log(
+        "pifus: PIFUS -- *async* --> lwIP tcp_connect succeeded!\n");
     operation_result.result_code = PIFUS_ASYNC;
   } else {
     pifus_log("pifus: could not tcp_connect!\n");
@@ -109,16 +132,19 @@ tx_tcp_bind(struct pifus_internal_operation *internal_op) {
   err_t result;
   struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
   struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
+  const ip_addr_t *ip_addr_type;
 
   if (bind_data->ip_type == PIFUS_IPV4_ADDR) {
-    result = tcp_bind(pcb, IP4_ADDR_ANY, bind_data->port);
+    ip_addr_type = IP4_ADDR_ANY;
   } else if (bind_data->ip_type == PIFUS_IPV6_ADDR) {
-    result = tcp_bind(pcb, IP6_ADDR_ANY, bind_data->port);
+    ip_addr_type = IP6_ADDR_ANY;
   } else if (bind_data->ip_type == PIFUS_IPVX_ADDR) {
-    result = tcp_bind(pcb, IP_ANY_TYPE, bind_data->port);
+    ip_addr_type = IP_ANY_TYPE;
   } else {
     pifus_log("pifus: unknown ip_type in bind()\n");
   }
+
+  result = tcp_bind(pcb, ip_addr_type, bind_data->port);
 
   struct pifus_operation_result operation_result;
   if (result == ERR_OK) {
@@ -150,6 +176,9 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       break;
     case TCP_CONNECT:
       operation_result = tx_tcp_connect(internal_op);
+      break;
+    case TCP_WRITE:
+      operation_result = tx_tcp_write(internal_op);
       break;
     default:
       pifus_log("pifus: TX op code %u is not known!\n",
