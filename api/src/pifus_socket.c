@@ -97,26 +97,36 @@ void pifus_socket_connect(struct pifus_socket *socket,
 }
 
 void pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
-    struct pifus_operation write_operation;
+  struct pifus_operation write_operation;
 
   if (socket->protocol == PROTOCOL_TCP) {
     write_operation.code = TCP_WRITE;
   } else {
-    // TODO: maybe write wrapper for socket_send for UDP
+    /**
+     * TODO: maybe write wrapper for socket_send for UDP
+     */
     write_operation.code = UDP_SEND;
   }
 
-  /**
-   * TODO: copy data into shared memory (app region), malloc like algorithm,
-   * then the data ptr should just be an offset to app regions beginning
-   * NOTE: maybe check ptrdiff_t out (if it can help)
-   */
-  //write_operation.data.write.data = data;
+  ptrdiff_t block_offset;
+  struct pifus_memory_block *block = NULL;
+
+  if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
+    pifus_log("pifus: Could not allocate memory for write()!\n");
+    /**
+     * TODO: think about error handling. Maybe the operations must return an int
+     * or bool to show if transmitting to stack worked.
+     */
+    return;
+  }
+
+  memcpy(shm_data_get_data_ptr(block), data, size);
+
+  write_operation.data.write.block_offset = block_offset;
   write_operation.data.write.size = size;
 
   enqueue_operation(socket, write_operation);
 }
-
 
 void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {

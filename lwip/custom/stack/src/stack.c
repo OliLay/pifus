@@ -87,8 +87,14 @@ struct pifus_operation_result
 tx_tcp_write(struct pifus_internal_operation *internal_op) {
   struct pifus_write_data *write_data = &internal_op->operation.data.write;
   struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
+  struct pifus_app *app = app_ptrs[internal_op->socket->identifier.app_index];
 
-  err_t result = tcp_write(pcb, write_data->data, write_data->size, 0);
+  struct pifus_memory_block *block =
+      shm_data_get_block_ptr(app, write_data->block_offset);
+
+  void *data_ptr = shm_data_get_data_ptr(block);
+
+  err_t result = tcp_write(pcb, data_ptr, block->size, 0);
 
   struct pifus_operation_result operation_result;
   if (result == ERR_OK) {

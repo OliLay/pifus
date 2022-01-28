@@ -1,6 +1,7 @@
 /* standard includes */
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 /* local includes */
 #include "pifus.h"
@@ -32,6 +33,11 @@ int main(int argc, char *argv[]) {
   struct pifus_ip_addr remote_addr;
   ip_addr_from_string("192.168.1.201", &remote_addr);
   pifus_socket_connect(socket, remote_addr, 11337);
+  pifus_socket_wait(socket, &operation_result);
+  print_result(&operation_result);
+
+  char *data = "Group42 war nicht fast coronafrei!";
+  pifus_socket_write(socket, data, strlen(data) + 1);
   
   while (true) {
     pifus_socket_wait(socket, &operation_result);

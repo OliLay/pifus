@@ -47,7 +47,7 @@ struct pifus_connect_data {
  * Data needed for the write operation.
  */
 struct pifus_write_data {
-  void *data;
+  ptrdiff_t block_offset;
   size_t size;
 };
 

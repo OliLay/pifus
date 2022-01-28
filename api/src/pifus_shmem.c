@@ -16,6 +16,11 @@
 #include "pifus_shmem.h"
 #include "utils/log.h"
 
+struct pifus_memory_block *
+shm_data_next_suitable_block(struct pifus_memory_block *start_block,
+                             struct pifus_memory_block *current_block,
+                             size_t size);
+
 int shm_open_region(char *shm_name, bool create) {
   int flags = O_RDWR | O_EXCL;
 
@@ -55,3 +60,73 @@ void *shm_map_region(int fd, size_t size, bool create) {
 }
 
 void shm_unlink_region(char *shm_name) { shm_unlink(shm_name); }
+
+struct pifus_memory_block *
+shm_data_next_suitable_block(struct pifus_memory_block *start_block,
+                             struct pifus_memory_block *current_block,
+                             size_t size) {
+
+  bool block_exists = current_block->size > 0;
+  bool block_suitable = (current_block->free && current_block->size >= size);
+
+  if (!block_exists || block_suitable) {
+    return current_block;
+  } else {
+    struct pifus_memory_block *next_block =
+        current_block + sizeof(struct pifus_memory_block) + current_block->size;
+
+    if (next_block + sizeof(struct pifus_memory_block) + size >
+        start_block + SHM_APP_SIZE) {
+      pifus_log("pifus_shm: End of memory region reached, no suitable block "
+                "found for size %u\n!",
+                size);
+      // end of memory region, no suitable block found.
+      return NULL;
+    }
+
+    return shm_data_next_suitable_block(start_block, next_block, size);
+  }
+}
+
+bool shm_data_allocate(struct pifus_app *app_region, size_t size,
+                       ptrdiff_t *ptr_offset,
+                       struct pifus_memory_block **block) {
+  struct pifus_memory_block *start_block =
+      (struct pifus_memory_block *)(app_region + sizeof(struct pifus_app));
+  struct pifus_memory_block *allocating_block =
+      shm_data_next_suitable_block(start_block, start_block, size);
+
+  if (allocating_block == NULL) {
+    return false;
+  }
+
+  allocating_block->free = false;
+  allocating_block->size = size;
+  *ptr_offset = allocating_block - start_block;
+  *block = allocating_block;
+
+  pifus_debug_log("pifus_shm: Allocated block with size %u and offset %u "
+                  "inside app data!\n",
+                  size, *ptr_offset);
+
+  return true;
+}
+
+void shm_data_free(struct pifus_app *app_region, ptrdiff_t ptr_offset) {
+  struct pifus_memory_block *block = (struct pifus_memory_block *)app_region +
+                                     sizeof(struct pifus_app) + ptr_offset;
+
+  memset(block + sizeof(struct pifus_memory_block), 0x00, block->size);
+  block->free = true;
+}
+
+struct pifus_memory_block *
+shm_data_get_block_ptr(struct pifus_app *app_region,
+                             ptrdiff_t block_offset) {
+  return (struct pifus_memory_block *)(app_region + sizeof(struct pifus_app) +
+                                       block_offset);
+}
+
+void *shm_data_get_data_ptr(struct pifus_memory_block *memory_block) {
+  return memory_block + sizeof(struct pifus_memory_block);
+}
