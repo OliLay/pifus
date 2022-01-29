@@ -38,6 +38,13 @@ int main(int argc, char *argv[]) {
 
   char *data = "Group42 war nicht fast coronafrei!";
   pifus_socket_write(socket, data, strlen(data) + 1);
+  pifus_socket_wait(socket, &operation_result);
+  print_result(&operation_result);
+
+  sleep(1);
+
+  char *data1 = "GroupDRÖLF war nicht fast coronafrei!";
+  pifus_socket_write(socket, data1, strlen(data1) + 1);
   
   while (true) {
     pifus_socket_wait(socket, &operation_result);

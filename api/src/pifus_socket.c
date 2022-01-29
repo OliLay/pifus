@@ -111,6 +111,11 @@ void pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   ptrdiff_t block_offset;
   struct pifus_memory_block *block = NULL;
 
+/**
+ * TODO: this allocation has to be freed somewhere!
+ * Must be
+ *  - after stack did tcp_output (required to call tcp_output)
+ */
   if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
     pifus_log("pifus: Could not allocate memory for write()!\n");
     /**

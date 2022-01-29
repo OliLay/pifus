@@ -51,7 +51,6 @@ struct pifus_app {
 struct pifus_memory_block {
   bool free;
   size_t size;
-  ptrdiff_t next_block;
 };
 
 /**
@@ -94,10 +93,9 @@ bool shm_data_allocate(struct pifus_app *app_region, size_t size,
 /**
  * @brief Free's memory in the app's data region block.
  *
- * @param app_region Pointer to the app region.
- * @param ptr_offset The offset of the block to free.
+ * @param block The block to free.
  */
-void shm_data_free(struct pifus_app *app_region, ptrdiff_t ptr_offset);
+void shm_data_free(struct pifus_memory_block *block);
 
 /**
  * @brief Convenience function for converting a block offset to a pointer.
