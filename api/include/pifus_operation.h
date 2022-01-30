@@ -76,10 +76,9 @@ struct pifus_operation_result {
   enum pifus_operation_code code;
   enum pifus_result_code result_code;
 
-  // TODO: insert into union for additional data being returned!
-  // union {
-  //
-  // } data;
+  union {
+    struct pifus_write_data write;
+  } data;
 };
 
 const char *operation_str(enum pifus_operation_code operation_code);

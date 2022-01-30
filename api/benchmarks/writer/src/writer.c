@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 /* standard includes */
 #include <stdio.h>
 #include <unistd.h>
@@ -42,13 +44,18 @@ int main(int argc, char *argv[]) {
   print_result(&operation_result);
 
   sleep(1);
-
-  char *data1 = "GroupDRÖLF war nicht fast coronafrei!";
-  pifus_socket_write(socket, data1, strlen(data1) + 1);
   
+  int i = 0;
   while (true) {
+    char *loop_data;
+    asprintf(&loop_data, "%s%i", "GroupDRÖLF war nicht fast coronafrei! #", i);
+    
+    pifus_socket_write(socket, loop_data, strlen(loop_data) + 1);
     pifus_socket_wait(socket, &operation_result);
     print_result(&operation_result);
+
+    sleep(1);
+    i++;
   }
 
   /**

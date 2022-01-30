@@ -64,6 +64,8 @@ void map_new_sockets(app_index_t app_index) {
 
         socket->identifier.app_index = app_index;
         socket->identifier.socket_index = socket_index;
+
+        pifus_operation_result_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
       }
 
       pifus_log("pifus_tx: Mapped socket %u for app %u\n", socket_index,

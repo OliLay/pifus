@@ -15,9 +15,9 @@
 #include "utils/log.h"
 
 struct pifus_socket *map_socket_region(void);
-void allocate_structures(struct pifus_socket *socket);
 void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op);
+void free_write_buffers(struct pifus_operation_result *operation_result);
 
 struct pifus_socket *map_socket_region(void) {
   app_state->highest_socket_number++;
@@ -34,9 +34,13 @@ struct pifus_socket *map_socket_region(void) {
   return (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
 }
 
-void allocate_structures(struct pifus_socket *socket) {
-  pifus_operation_ring_buffer_create(&socket->squeue, SQUEUE_SIZE);
-  pifus_operation_result_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
+void free_write_buffers(struct pifus_operation_result *operation_result) {
+  if (operation_result->code == TCP_WRITE ||
+      operation_result->code == UDP_SEND) {
+    struct pifus_memory_block *block = shm_data_get_block_ptr(
+        app_state, operation_result->data.write.block_offset);
+    shm_data_free(block);
+  }
 }
 
 void enqueue_operation(struct pifus_socket *socket,
@@ -51,7 +55,7 @@ struct pifus_socket *pifus_socket(enum protocol protocol) {
   struct pifus_socket *socket = map_socket_region();
 
   socket->protocol = protocol;
-  allocate_structures(socket);
+  pifus_operation_ring_buffer_create(&socket->squeue, SQUEUE_SIZE);
 
   int retcode = futex_wake(&app_state->highest_socket_number);
   if (retcode < 0) {
@@ -96,33 +100,21 @@ void pifus_socket_connect(struct pifus_socket *socket,
   enqueue_operation(socket, connect_operation);
 }
 
-void pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
+bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   struct pifus_operation write_operation;
 
   if (socket->protocol == PROTOCOL_TCP) {
     write_operation.code = TCP_WRITE;
   } else {
-    /**
-     * TODO: maybe write wrapper for socket_send for UDP
-     */
     write_operation.code = UDP_SEND;
   }
 
   ptrdiff_t block_offset;
   struct pifus_memory_block *block = NULL;
 
-/**
- * TODO: this allocation has to be freed somewhere!
- * Must be
- *  - after stack did tcp_output (required to call tcp_output)
- */
   if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
     pifus_log("pifus: Could not allocate memory for write()!\n");
-    /**
-     * TODO: think about error handling. Maybe the operations must return an int
-     * or bool to show if transmitting to stack worked.
-     */
-    return;
+    return false;
   }
 
   memcpy(shm_data_get_data_ptr(block), data, size);
@@ -131,12 +123,16 @@ void pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   write_operation.data.write.size = size;
 
   enqueue_operation(socket, write_operation);
+
+  return true;
 }
 
 void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
   if (pifus_operation_result_ring_buffer_get(
           &socket->cqueue, socket->cqueue_buffer, operation_result)) {
+
+    free_write_buffers(operation_result);
     return;
   }
 
@@ -147,6 +143,8 @@ void pifus_socket_wait(struct pifus_socket *socket,
     } else {
       if (pifus_operation_result_ring_buffer_get(
               &socket->cqueue, socket->cqueue_buffer, operation_result)) {
+        free_write_buffers(operation_result);
+
         return;
       }
     }

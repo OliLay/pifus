@@ -83,10 +83,12 @@
     }                                                                          \
   }
 
-#define RING_BUFFER_SOURCE_DEFS(NAME, ELEMENT_TYPE) RING_BUFFER_FN_CREATE(NAME) \
-RING_BUFFER_FN_GET(NAME, ELEMENT_TYPE) \
-RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)
+#define RING_BUFFER_SOURCE_DEFS(NAME, ELEMENT_TYPE)                            \
+  RING_BUFFER_FN_CREATE(NAME)                                                  \
+  RING_BUFFER_FN_GET(NAME, ELEMENT_TYPE)                                       \
+  RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)
 
 RING_BUFFER_SOURCE_DEFS(pifus_operation_ring_buffer, pifus_operation)
-RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer, pifus_operation_result)
+RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer,
+                        pifus_operation_result)
 RING_BUFFER_SOURCE_DEFS(pifus_tx_ring_buffer, pifus_internal_operation)

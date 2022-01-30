@@ -42,8 +42,9 @@ void pifus_socket_connect(struct pifus_socket *socket,
  * @param socket The socket that should written on.
  * @param data Pointer to the data.
  * @param size Size of the data.
+ * @return true upon success, false upon error.
  */
-void pifus_socket_write(struct pifus_socket *socket, void *data, size_t size);
+bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size);
 
 /**
  * @brief Waits for a operation inside a socket to complete.

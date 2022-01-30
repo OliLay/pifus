@@ -48,7 +48,6 @@ void enqueue_in_cqueue(struct pifus_socket *socket,
                   socket->identifier.app_index);
   pifus_operation_result_ring_buffer_put(&socket->cqueue, socket->cqueue_buffer,
                                          *operation_result);
-
   socket->cqueue_futex++;
   futex_wake(&socket->cqueue_futex);
 }
@@ -97,9 +96,13 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
   err_t result = tcp_write(pcb, data_ptr, block->size, 0);
 
   struct pifus_operation_result operation_result;
+  operation_result.data.write = internal_op->operation.data.write;
   if (result == ERR_OK) {
     pifus_debug_log("pifus: PIFUS -> lwIP tcp_write succeeded!\n");
     operation_result.result_code = PIFUS_OK;
+
+    // TODO: don't do this for every write op, batch by pcb somehow
+    tcp_output(pcb);
   } else {
     pifus_log("pifus: could not tcp_write!\n");
     operation_result.result_code = PIFUS_ERR;
@@ -210,8 +213,8 @@ void lwip_loop_iteration(void) {
   struct pifus_internal_operation tx_op;
   while (pifus_tx_ring_buffer_get(&tx_queue.ring_buffer,
                                   tx_queue.tx_queue_buffer, &tx_op)) {
-    app_index_t app_index = tx_op.socket->identifier.app_index;
-    socket_index_t socket_index = tx_op.socket->identifier.socket_index;
+    const app_index_t app_index = tx_op.socket->identifier.app_index;
+    const socket_index_t socket_index = tx_op.socket->identifier.socket_index;
 
     pifus_log("pifus: Operation received from app%u/socket%u: %s\n", app_index,
               socket_index, operation_str(tx_op.operation.code));

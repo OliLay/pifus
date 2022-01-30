@@ -44,8 +44,7 @@ void *shm_map_region(int fd, size_t size, bool create) {
     exit(1);
   }
 
-  void *shmem_ptr =
-      (int *)mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  void *shmem_ptr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
   if (shmem_ptr == MAP_FAILED) {
     pifus_log("pifus_shm: mmap failed with code %i\n", errno);
@@ -90,6 +89,10 @@ shm_data_next_suitable_block(struct pifus_memory_block *start_block,
   }
 }
 
+/**
+ * TODO:
+ *  - merge adjacent regions so that a larger region can evolve
+ */
 bool shm_data_allocate(struct pifus_app *app_region, size_t size,
                        ptrdiff_t *ptr_offset,
                        struct pifus_memory_block **block) {

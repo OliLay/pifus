@@ -43,9 +43,6 @@ struct pifus_app {
   /* Gives index of highest socket. Used as futex for wake-up when new socket
    * is created */
   socket_index_t highest_socket_number;
-  /**
-   * TODO: data area
-   */
 };
 
 struct pifus_memory_block {
@@ -91,7 +88,7 @@ bool shm_data_allocate(struct pifus_app *app_region, size_t size,
                        struct pifus_memory_block **block);
 
 /**
- * @brief Free's memory in the app's data region block.
+ * @brief Frees memory in the app's data region block.
  *
  * @param block The block to free.
  */
