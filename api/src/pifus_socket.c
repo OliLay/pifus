@@ -39,7 +39,7 @@ void free_write_buffers(struct pifus_operation_result *operation_result) {
       operation_result->code == UDP_SEND) {
     struct pifus_memory_block *block = shm_data_get_block_ptr(
         app_state, operation_result->data.write.block_offset);
-    shm_data_free(block);
+    shm_data_free(app_state, block);
   }
 }
 

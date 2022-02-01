@@ -45,9 +45,13 @@ struct pifus_app {
   socket_index_t highest_socket_number;
 };
 
+/**
+ * @brief Describes a memory block inside the app's data region.
+ */
 struct pifus_memory_block {
   bool free;
   size_t size;
+  ptrdiff_t prev_block_offset;
 };
 
 /**
@@ -90,9 +94,11 @@ bool shm_data_allocate(struct pifus_app *app_region, size_t size,
 /**
  * @brief Frees memory in the app's data region block.
  *
+ * @param app_region The app region ptr.
  * @param block The block to free.
  */
-void shm_data_free(struct pifus_memory_block *block);
+void shm_data_free(struct pifus_app *app_region,
+                   struct pifus_memory_block *block);
 
 /**
  * @brief Convenience function for converting a block offset to a pointer.
@@ -101,9 +107,8 @@ void shm_data_free(struct pifus_memory_block *block);
  * @param block_offset The pointer offset of the block
  * @return Ptr to memory block.
  */
-struct pifus_memory_block *
-shm_data_get_block_ptr(struct pifus_app *app_region,
-                             ptrdiff_t block_offset);
+struct pifus_memory_block *shm_data_get_block_ptr(struct pifus_app *app_region,
+                                                  ptrdiff_t block_offset);
 
 /**
  * @brief Convenience function for getting the data ptr of a pifus_memory_block.

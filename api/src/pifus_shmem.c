@@ -16,10 +16,15 @@
 #include "pifus_shmem.h"
 #include "utils/log.h"
 
+struct pifus_memory_block *shm_data_next_suitable_block(
+    struct pifus_app *app, struct pifus_memory_block *previous_block,
+    struct pifus_memory_block *current_block, size_t size,
+    struct pifus_memory_block **previous_block_out);
+void shm_data_delete_block(struct pifus_memory_block *block);
 struct pifus_memory_block *
-shm_data_next_suitable_block(struct pifus_memory_block *start_block,
-                             struct pifus_memory_block *current_block,
-                             size_t size);
+shm_data_get_next_block_ptr(struct pifus_app *app,
+                            struct pifus_memory_block *block);
+bool shm_data_is_ptr_out_of_range(struct pifus_app *app, void *ptr);
 
 int shm_open_region(char *shm_name, bool create) {
   int flags = O_RDWR | O_EXCL;
@@ -60,15 +65,16 @@ void *shm_map_region(int fd, size_t size, bool create) {
 
 void shm_unlink_region(char *shm_name) { shm_unlink(shm_name); }
 
-struct pifus_memory_block *
-shm_data_next_suitable_block(struct pifus_memory_block *start_block,
-                             struct pifus_memory_block *current_block,
-                             size_t size) {
+struct pifus_memory_block *shm_data_next_suitable_block(
+    struct pifus_app *app, struct pifus_memory_block *previous_block,
+    struct pifus_memory_block *current_block, size_t size,
+    struct pifus_memory_block **previous_block_out) {
 
   bool block_exists = current_block->size > 0;
   bool block_suitable = (current_block->free && current_block->size >= size);
 
   if (!block_exists || block_suitable) {
+    *previous_block_out = previous_block;
     return current_block;
   } else {
     struct pifus_memory_block *next_block =
@@ -76,30 +82,31 @@ shm_data_next_suitable_block(struct pifus_memory_block *start_block,
                                       sizeof(struct pifus_memory_block) +
                                       current_block->size);
 
-    if ((uint8_t *)next_block + sizeof(struct pifus_memory_block) + size >
-        (uint8_t *)start_block + SHM_APP_SIZE) {
+    void *next_block_end_ptr =
+        (uint8_t *)next_block + sizeof(struct pifus_memory_block) + size;
+    if (shm_data_is_ptr_out_of_range(app, next_block_end_ptr)) {
+      // end of memory region, no suitable block found.
+
       pifus_log("pifus_shm: End of memory region reached, no suitable block "
                 "found for size %u\n!",
                 size);
-      // end of memory region, no suitable block found.
       return NULL;
     }
 
-    return shm_data_next_suitable_block(start_block, next_block, size);
+    return shm_data_next_suitable_block(app, current_block, next_block, size,
+                                        previous_block_out);
   }
 }
 
-/**
- * TODO:
- *  - merge adjacent regions so that a larger region can evolve
- */
 bool shm_data_allocate(struct pifus_app *app_region, size_t size,
                        ptrdiff_t *ptr_offset,
                        struct pifus_memory_block **block) {
   struct pifus_memory_block *start_block =
       (struct pifus_memory_block *)(app_region + 1);
-  struct pifus_memory_block *allocating_block =
-      shm_data_next_suitable_block(start_block, start_block, size);
+
+  struct pifus_memory_block *previous_block = NULL;
+  struct pifus_memory_block *allocating_block = shm_data_next_suitable_block(
+      app_region, NULL, start_block, size, &previous_block);
 
   if (allocating_block == NULL) {
     return false;
@@ -107,6 +114,13 @@ bool shm_data_allocate(struct pifus_app *app_region, size_t size,
 
   allocating_block->free = false;
   allocating_block->size = size;
+
+  if (previous_block != NULL) {
+    allocating_block->prev_block_offset =
+        (uint8_t *)previous_block - (uint8_t *)start_block;
+  } else {
+    allocating_block->prev_block_offset = 0;
+  }
   *ptr_offset = (uint8_t *)allocating_block - (uint8_t *)start_block;
   *block = allocating_block;
 
@@ -117,9 +131,72 @@ bool shm_data_allocate(struct pifus_app *app_region, size_t size,
   return true;
 }
 
-void shm_data_free(struct pifus_memory_block *block) {
+void shm_data_delete_block(struct pifus_memory_block *block) {
+  memset(block, 0x00, sizeof(struct pifus_memory_block) + block->size);
+}
 
-  memset(block + 1, 0x00, block->size);
+bool shm_data_is_ptr_out_of_range(struct pifus_app *app, void *ptr) {
+  return (uint8_t *)ptr > (uint8_t *)app + SHM_APP_SIZE;
+}
+
+struct pifus_memory_block *
+shm_data_get_next_block_ptr(struct pifus_app *app,
+                            struct pifus_memory_block *block) {
+  struct pifus_memory_block *next_block =
+      (struct pifus_memory_block *)((uint8_t *)block +
+                                    sizeof(struct pifus_memory_block) +
+                                    block->size);
+
+  if (shm_data_is_ptr_out_of_range(app, next_block)) {
+    return NULL;
+  } else {
+    return next_block;
+  }
+}
+
+void shm_data_free(struct pifus_app *app_region,
+                   struct pifus_memory_block *block) {
+  struct pifus_memory_block *next_block =
+      shm_data_get_next_block_ptr(app_region, block);
+
+  bool exists_previous_block = block->prev_block_offset != 0;
+  bool exists_next_block = next_block != NULL && next_block->size != 0;
+
+  if (!exists_previous_block && !exists_next_block) {
+    // delete if no previous and next block
+    shm_data_delete_block(block);
+
+    pifus_debug_log("pifus_shm: Freeing, no previous block and no next block, "
+                    "deleting block.\n");
+    return;
+  }
+
+  struct pifus_memory_block *new_merged_block = block;
+  if (exists_previous_block) {
+    // previous block exists
+    struct pifus_memory_block *previous_block =
+        shm_data_get_block_ptr(app_region, block->prev_block_offset);
+
+    if (previous_block->free) {
+      // merge with previous block
+      new_merged_block = previous_block;
+      new_merged_block->size += sizeof(struct pifus_memory_block) + block->size;
+      shm_data_delete_block(previous_block);
+
+      pifus_debug_log("pifus_shm: Freeing, merging with previous block.\n");
+    }
+  }
+
+  if (exists_next_block && next_block->free) {
+    // merge with next block
+    new_merged_block->size +=
+        sizeof(struct pifus_memory_block) + next_block->size;
+    shm_data_delete_block(next_block);
+
+    pifus_debug_log("pifus_shm: Freeing, merging with next block.\n");
+  }
+
+  memset(new_merged_block + 1, 0x00, new_merged_block->size);
   block->free = true;
 }
 
