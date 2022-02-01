@@ -67,6 +67,23 @@ err_t tcp_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {
   return ERR_OK;
 }
 
+err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
+  struct pifus_socket *socket = arg;
+  pifus_debug_log(
+      "pifus: tcp_sent_callback called for socket %u in app %u!\n",
+      socket->identifier.socket_index, socket->identifier.app_index);
+
+  // TODO: check if amount of write has really been written.
+
+  struct pifus_operation_result operation_result;
+  operation_result.code = TCP_WRITE;
+  operation_result.result_code = PIFUS_OK;
+
+  enqueue_in_cqueue(socket, &operation_result);
+
+  return ERR_OK;
+}
+
 void tcp_err_callback(void *arg, err_t err) {
   struct pifus_socket *socket = arg;
   pifus_log("pifus: tcp_err_callback called for socket %u in app %u!\n",
@@ -88,21 +105,22 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
   struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
   struct pifus_app *app = app_ptrs[internal_op->socket->identifier.app_index];
 
+  // TODO: save list for each pcb, indicating how much was written.
+  tcp_sent(pcb, &tcp_sent_callback);
+
   struct pifus_memory_block *block =
       shm_data_get_block_ptr(app, write_data->block_offset);
 
-  void *data_ptr = shm_data_get_data_ptr(block);
-
+  void *data_ptr = shm_data_get_data_ptr(block);  
   err_t result = tcp_write(pcb, data_ptr, block->size, 0);
 
   struct pifus_operation_result operation_result;
   operation_result.data.write = internal_op->operation.data.write;
   if (result == ERR_OK) {
-    pifus_debug_log("pifus: PIFUS -> lwIP tcp_write succeeded!\n");
-    operation_result.result_code = PIFUS_OK;
+    pifus_debug_log("pifus: PIFUS -- *async* --> lwIP tcp_write succeeded!\n");
+    operation_result.result_code = PIFUS_ASYNC;
 
-    // TODO: don't do this for every write op, batch by pcb somehow
-    tcp_output(pcb);
+    fwrite(data_ptr, sizeof(char), block->size, stdout);
   } else {
     pifus_log("pifus: could not tcp_write!\n");
     operation_result.result_code = PIFUS_ERR;

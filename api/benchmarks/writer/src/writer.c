@@ -38,8 +38,8 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  char *data = "Sepp ist ein großartiges Katzenwesen.";
-  pifus_socket_write(socket, data, strlen(data) + 1);
+  char *data = "Sepp ist ein großartiges Katzenwesen.\n";
+  pifus_socket_write(socket, data, strlen(data));
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
@@ -48,13 +48,13 @@ int main(int argc, char *argv[]) {
   int i = 0;
   while (true) {
     char *loop_data;
-    asprintf(&loop_data, "%s%i", "Sepp ist ein großartiges Katzenwesen. #", i);
+    asprintf(&loop_data, "%s%i%s", "Sepp ist ein großartiges Katzenwesen. #", i, "\n");
     
-    pifus_socket_write(socket, loop_data, strlen(loop_data) + 1);
+    pifus_socket_write(socket, loop_data, strlen(loop_data));
     pifus_socket_wait(socket, &operation_result);
     print_result(&operation_result);
 
-    sleep(1);
+   // sleep(1);
     i++;
   }
 

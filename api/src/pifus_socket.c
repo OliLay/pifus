@@ -132,7 +132,7 @@ void pifus_socket_wait(struct pifus_socket *socket,
   if (pifus_operation_result_ring_buffer_get(
           &socket->cqueue, socket->cqueue_buffer, operation_result)) {
 
-    free_write_buffers(operation_result);
+   // free_write_buffers(operation_result);
     return;
   }
 
@@ -143,7 +143,7 @@ void pifus_socket_wait(struct pifus_socket *socket,
     } else {
       if (pifus_operation_result_ring_buffer_get(
               &socket->cqueue, socket->cqueue_buffer, operation_result)) {
-        free_write_buffers(operation_result);
+       // free_write_buffers(operation_result);
 
         return;
       }
