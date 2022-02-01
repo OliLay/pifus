@@ -34,18 +34,12 @@ struct pifus_socket *map_socket_region(void) {
   return (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
 }
 
-void free_write_buffers(struct pifus_operation_result *operation_result) {
-  if (operation_result->code == TCP_WRITE ||
-      operation_result->code == UDP_SEND) {
-    struct pifus_memory_block *block = shm_data_get_block_ptr(
-        app_state, operation_result->data.write.block_offset);
-    shm_data_free(app_state, block);
-  }
-}
-
 void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op) {
-  pifus_operation_ring_buffer_put(&socket->squeue, socket->squeue_buffer, op);
+  if (!pifus_operation_ring_buffer_put(&socket->squeue, socket->squeue_buffer, op)) {
+    pifus_log("pifus: Could not enqueue to squeue, maybe its full?\n");
+    return;
+  }
 
   socket->squeue_futex++;
   futex_wake(&socket->squeue_futex);
@@ -120,7 +114,6 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   memcpy(shm_data_get_data_ptr(block), data, size);
 
   write_operation.data.write.block_offset = block_offset;
-  write_operation.data.write.size = size;
 
   enqueue_operation(socket, write_operation);
 
@@ -131,8 +124,8 @@ void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
   if (pifus_operation_result_ring_buffer_get(
           &socket->cqueue, socket->cqueue_buffer, operation_result)) {
-
-   // free_write_buffers(operation_result);
+    // TODO:
+    //free_write_buffers(operation_result);
     return;
   }
 
@@ -143,6 +136,7 @@ void pifus_socket_wait(struct pifus_socket *socket,
     } else {
       if (pifus_operation_result_ring_buffer_get(
               &socket->cqueue, socket->cqueue_buffer, operation_result)) {
+       // TODO:
        // free_write_buffers(operation_result);
 
         return;

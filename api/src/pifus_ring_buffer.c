@@ -50,8 +50,8 @@
 
 /*..........................................................................*/
 #define RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)                                 \
-  bool NAME##_put(struct NAME *const ring_buffer, struct ELEMENT_TYPE *buf,    \
-                  struct ELEMENT_TYPE const el) {                              \
+  bool NAME##_put(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,           \
+                  ELEMENT_TYPE const el) {                                     \
     uint16_t head = ring_buffer->head + 1U;                                    \
     if (head == ring_buffer->end) {                                            \
       head = 0U;                                                               \
@@ -67,8 +67,8 @@
 /*..........................................................................*/
 
 #define RING_BUFFER_FN_GET(NAME, ELEMENT_TYPE)                                 \
-  bool NAME##_get(struct NAME *const ring_buffer, struct ELEMENT_TYPE *buf,    \
-                  struct ELEMENT_TYPE *pel) {                                  \
+  bool NAME##_get(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,           \
+                  ELEMENT_TYPE *pel) {                                         \
     uint16_t tail = ring_buffer->tail;                                         \
     if (ring_buffer->head != tail) { /* ring buffer NOT empty? */              \
       *pel = buf[tail];                                                        \
@@ -83,12 +83,26 @@
     }                                                                          \
   }
 
+#define RING_BUFFER_FN_PEEK(NAME, ELEMENT_TYPE)                                \
+  bool NAME##_peek(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,          \
+                   ELEMENT_TYPE **pel) {                                        \
+    uint16_t tail = ring_buffer->tail;                                         \
+    if (ring_buffer->head != tail) { /* ring buffer NOT empty? */              \
+      *pel = &buf[tail];                                                        \
+      return true;                                                             \
+    } else {                                                                   \
+      return false;                                                            \
+    }                                                                          \
+  }
+
 #define RING_BUFFER_SOURCE_DEFS(NAME, ELEMENT_TYPE)                            \
   RING_BUFFER_FN_CREATE(NAME)                                                  \
   RING_BUFFER_FN_GET(NAME, ELEMENT_TYPE)                                       \
+  RING_BUFFER_FN_PEEK(NAME, ELEMENT_TYPE)                                      \
   RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)
 
-RING_BUFFER_SOURCE_DEFS(pifus_operation_ring_buffer, pifus_operation)
+RING_BUFFER_SOURCE_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
 RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer,
-                        pifus_operation_result)
-RING_BUFFER_SOURCE_DEFS(pifus_tx_ring_buffer, pifus_internal_operation)
+                        struct pifus_operation_result)
+RING_BUFFER_SOURCE_DEFS(pifus_tx_ring_buffer, struct pifus_internal_operation)
+RING_BUFFER_SOURCE_DEFS(pifus_write_queue, struct pifus_write_queue_entry)

@@ -39,6 +39,7 @@
 #define PIFUS_RING_BUFFER
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "pifus_operation.h"
 
@@ -53,19 +54,26 @@
   void NAME##_create(struct NAME *ring_buffer, uint16_t buffer_length);
 
 #define RING_BUFFER_GET(NAME, ELEMENT_TYPE)                                    \
-  bool NAME##_get(struct NAME *const ring_buffer, struct ELEMENT_TYPE *buf,    \
-                  struct ELEMENT_TYPE *pel);
+  bool NAME##_get(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,    \
+                  ELEMENT_TYPE *pel);
+
+#define RING_BUFFER_PEEK(NAME, ELEMENT_TYPE)                                    \
+  bool NAME##_peek(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,    \
+                  ELEMENT_TYPE **pel);
 
 #define RING_BUFFER_PUT(NAME, ELEMENT_TYPE)                                    \
-  bool NAME##_put(struct NAME *const ring_buffer, struct ELEMENT_TYPE *buf,    \
-                  struct ELEMENT_TYPE const pel);
+  bool NAME##_put(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,    \
+                  ELEMENT_TYPE const pel);
 
 #define RING_BUFFER_HEADER_DEFS(NAME, ELEMENT_TYPE) RING_BUFFER_STRUCT(NAME) \
 RING_BUFFER_CREATE(NAME) \
 RING_BUFFER_GET(NAME, ELEMENT_TYPE) \
+RING_BUFFER_PEEK(NAME, ELEMENT_TYPE) \
 RING_BUFFER_PUT(NAME, ELEMENT_TYPE)
 
-RING_BUFFER_HEADER_DEFS(pifus_operation_ring_buffer, pifus_operation)
-RING_BUFFER_HEADER_DEFS(pifus_operation_result_ring_buffer, pifus_operation_result)
-RING_BUFFER_HEADER_DEFS(pifus_tx_ring_buffer, pifus_internal_operation)
+RING_BUFFER_HEADER_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
+RING_BUFFER_HEADER_DEFS(pifus_operation_result_ring_buffer, struct pifus_operation_result)
+RING_BUFFER_HEADER_DEFS(pifus_tx_ring_buffer, struct pifus_internal_operation)
+RING_BUFFER_HEADER_DEFS(pifus_write_queue, struct pifus_write_queue_entry)
+
 #endif /* PIFUS_RING_BUFFER */

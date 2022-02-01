@@ -18,19 +18,26 @@ enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
 struct pifus_socket {
   enum protocol protocol;
   struct pifus_socket_identifier identifier;
+
   /* squeue */
   futex_t squeue_futex;
   struct pifus_operation_ring_buffer squeue;
   struct pifus_operation squeue_buffer[SQUEUE_SIZE];
+
   /* cqueue */
   futex_t cqueue_futex;
   struct pifus_operation_result_ring_buffer cqueue;
   struct pifus_operation_result cqueue_buffer[CQUEUE_SIZE];
-  /* internal lwIP mapping */
+
+  /* async operations lookup */
+  struct pifus_write_queue write_queue;
+  struct pifus_write_queue_entry write_queue_buffer[WRITE_QUEUE_SIZE];
+
+  /* ATTENTION: pointers below this note are only valid for stack side */
+  /* internal lwIP mappings */
   union {
     /** void pointers because this header file is also used on client side which
-     * does not have access to lwIP.
-     * ATTENTION: These pointers are only valid on stack-side! */
+     * does not have access to lwIP. */
     void *tcp;
     void *udp;
   } pcb;
@@ -40,8 +47,8 @@ struct pifus_socket {
  * @brief Shmem layout of app region.
  */
 struct pifus_app {
-  /* Gives index of highest socket. Used as futex for wake-up when new socket
-   * is created */
+  /* Gives index of highest socket. Used as futex for wake-up when new
+   * socket is created */
   socket_index_t highest_socket_number;
 };
 
@@ -111,7 +118,8 @@ struct pifus_memory_block *shm_data_get_block_ptr(struct pifus_app *app_region,
                                                   ptrdiff_t block_offset);
 
 /**
- * @brief Convenience function for getting the data ptr of a pifus_memory_block.
+ * @brief Convenience function for getting the data ptr of a
+ * pifus_memory_block.
  *
  * @param memory_block The memory_block ptr.
  * @return void ptr to data.

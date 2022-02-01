@@ -66,6 +66,7 @@ void map_new_sockets(app_index_t app_index) {
         socket->identifier.socket_index = socket_index;
 
         pifus_operation_result_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
+        pifus_write_queue_create(&socket->write_queue, WRITE_QUEUE_SIZE);
       }
 
       pifus_log("pifus_tx: Mapped socket %u for app %u\n", socket_index,
@@ -123,20 +124,30 @@ void handle_squeue_change(struct pifus_socket *socket) {
   pifus_log("pifus_tx: new operation in squeue from socket %u in app %u\n",
             socket->identifier.socket_index, socket->identifier.app_index);
 
-  app_index_t *app_index = &socket->identifier.app_index;
-  socket_index_t *socket_index = &socket->identifier.socket_index;
+  app_index_t app_index = socket->identifier.app_index;
+  socket_index_t socket_index = socket->identifier.socket_index;
+
+  futex_t old_shadow_value = socket_futexes[app_index][socket_index];
+  // get diff so we know how much has been inserted into the squeue
+  size_t shadow_actual_difference = socket->squeue_futex - old_shadow_value;
 
   // refresh shadow variable of futex
-  socket_futexes[*app_index][*socket_index] = socket->squeue_futex;
+  socket_futexes[app_index][socket_index] = socket->squeue_futex;
 
-  struct pifus_operation op;
-  if (pifus_operation_ring_buffer_get(&socket->squeue, socket->squeue_buffer,
-                                      &op)) {
-    struct pifus_internal_operation internal_op;
-    internal_op.operation = op;
-    internal_op.socket = socket;
-    pifus_tx_ring_buffer_put(&tx_queue.ring_buffer, tx_queue.tx_queue_buffer,
-                             internal_op);
+  while (shadow_actual_difference > 0) {
+    struct pifus_operation op;
+    if (pifus_operation_ring_buffer_get(&socket->squeue, socket->squeue_buffer,
+                                        &op)) {
+      struct pifus_internal_operation internal_op;
+      internal_op.operation = op;
+      internal_op.socket = socket;
+      pifus_tx_ring_buffer_put(&tx_queue.ring_buffer, tx_queue.tx_queue_buffer,
+                               internal_op);
+    } else {
+      pifus_log("pifus_tx: Could not get() from squeue.\n");
+    }
+
+    shadow_actual_difference--;
   }
 }
 

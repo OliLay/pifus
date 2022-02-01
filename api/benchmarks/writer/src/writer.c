@@ -45,16 +45,21 @@ int main(int argc, char *argv[]) {
 
   sleep(1);
   
-  int i = 0;
+  int i = 1;
   while (true) {
     char *loop_data;
     asprintf(&loop_data, "%s%i%s", "Sepp ist ein großartiges Katzenwesen. #", i, "\n");
     
     pifus_socket_write(socket, loop_data, strlen(loop_data));
-    pifus_socket_wait(socket, &operation_result);
-    print_result(&operation_result);
 
-   // sleep(1);
+    if (i % 2 == 0) {
+      pifus_socket_wait(socket, &operation_result);
+      print_result(&operation_result);
+
+      pifus_socket_wait(socket, &operation_result);
+      print_result(&operation_result);
+    }
+
     i++;
   }
 

@@ -48,8 +48,13 @@ struct pifus_connect_data {
  */
 struct pifus_write_data {
   ptrdiff_t block_offset;
-  size_t size;
 };
+
+struct pifus_write_queue_entry {
+  size_t size;
+  ptrdiff_t write_block_offset;
+};
+
 
 struct pifus_operation {
   enum pifus_operation_code code;

@@ -67,19 +67,51 @@ err_t tcp_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {
   return ERR_OK;
 }
 
+void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset) {
+  struct pifus_memory_block *block = shm_data_get_block_ptr(app, block_offset);
+  shm_data_free(app, block);
+}
+
 err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   struct pifus_socket *socket = arg;
-  pifus_debug_log(
-      "pifus: tcp_sent_callback called for socket %u in app %u!\n",
-      socket->identifier.socket_index, socket->identifier.app_index);
+  pifus_debug_log("pifus: tcp_sent_callback called for socket %u in app %u!\n",
+                  socket->identifier.socket_index,
+                  socket->identifier.app_index);
 
-  // TODO: check if amount of write has really been written.
+  // TODO: check if amount of write has really been written
+  struct pifus_write_queue_entry *write_queue_entry;
+  if (!pifus_write_queue_peek(&socket->write_queue, socket->write_queue_buffer,
+                              &write_queue_entry)) {
+    pifus_log(
+        "pifus: Could not dequeue write_queue_entry from write_queue in sent "
+        "callback! Can't notify app that write was successful.\n");
+  }
 
-  struct pifus_operation_result operation_result;
-  operation_result.code = TCP_WRITE;
-  operation_result.result_code = PIFUS_OK;
+  size_t first_size = write_queue_entry->size;
+  if (first_size <= len) {
+    struct pifus_operation_result operation_result;
+    operation_result.code = TCP_WRITE;
+    operation_result.result_code = PIFUS_OK;
 
-  enqueue_in_cqueue(socket, &operation_result);
+    // free TX buffer
+    struct pifus_app *app = app_ptrs[socket->identifier.app_index];
+    free_write_buffers(app, write_queue_entry->write_block_offset);
+
+    // just for dequeing. maybe add erase_first() method which just removes
+    // first entry
+    pifus_write_queue_get(&socket->write_queue, socket->write_queue_buffer,
+                          write_queue_entry);
+
+    enqueue_in_cqueue(socket, &operation_result);
+
+    if (first_size < len) {
+      // we need to consider further entries in the queue
+      return tcp_sent_callback(arg, tpcb, len - first_size);
+    }
+  } else {
+    // update len of first element in queue
+    write_queue_entry->size = first_size - len;
+  }
 
   return ERR_OK;
 }
@@ -102,16 +134,15 @@ void tcp_err_callback(void *arg, err_t err) {
 struct pifus_operation_result
 tx_tcp_write(struct pifus_internal_operation *internal_op) {
   struct pifus_write_data *write_data = &internal_op->operation.data.write;
-  struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
-  struct pifus_app *app = app_ptrs[internal_op->socket->identifier.app_index];
+  struct pifus_socket *socket = internal_op->socket;
 
-  // TODO: save list for each pcb, indicating how much was written.
-  tcp_sent(pcb, &tcp_sent_callback);
-
+  struct pifus_app *app = app_ptrs[socket->identifier.app_index];
   struct pifus_memory_block *block =
       shm_data_get_block_ptr(app, write_data->block_offset);
 
-  void *data_ptr = shm_data_get_data_ptr(block);  
+  void *data_ptr = shm_data_get_data_ptr(block);
+
+  struct tcp_pcb *pcb = socket->pcb.tcp;
   err_t result = tcp_write(pcb, data_ptr, block->size, 0);
 
   struct pifus_operation_result operation_result;
@@ -120,6 +151,18 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
     pifus_debug_log("pifus: PIFUS -- *async* --> lwIP tcp_write succeeded!\n");
     operation_result.result_code = PIFUS_ASYNC;
 
+    struct pifus_write_queue_entry write_queue_entry;
+    write_queue_entry.size = block->size;
+    write_queue_entry.write_block_offset = write_data->block_offset;
+
+    if (!pifus_write_queue_put(&socket->write_queue, socket->write_queue_buffer,
+                               write_queue_entry)) {
+      pifus_log("pifus: Could not store write length in write_queue_buffer as "
+                "it is full!\n");
+    }
+    tcp_sent(pcb, &tcp_sent_callback);
+
+    // TODO: Remove after debugging
     fwrite(data_ptr, sizeof(char), block->size, stdout);
   } else {
     pifus_log("pifus: could not tcp_write!\n");
