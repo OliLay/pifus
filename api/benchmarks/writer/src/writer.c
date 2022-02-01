@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  char *data = "Group42 war nicht fast coronafrei!";
+  char *data = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr!";
   pifus_socket_write(socket, data, strlen(data) + 1);
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   int i = 0;
   while (true) {
     char *loop_data;
-    asprintf(&loop_data, "%s%i", "GroupDRÖLF war nicht fast coronafrei! #", i);
+    asprintf(&loop_data, "%s%i", "Lorem ipsum dolor sit amet, consetetur sadipscing elitr! #", i);
     
     pifus_socket_write(socket, loop_data, strlen(loop_data) + 1);
     pifus_socket_wait(socket, &operation_result);
