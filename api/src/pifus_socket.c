@@ -19,7 +19,7 @@ void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op);
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result);
-void free_write_buffers(struct pifus_operation_result *operation_result);
+void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset);
 
 struct pifus_socket *map_socket_region(void) {
   app_state->highest_socket_number++;
@@ -123,10 +123,22 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   return true;
 }
 
+void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset) {
+  struct pifus_memory_block *block = shm_data_get_block_ptr(app, block_offset);
+  shm_data_free(app, block);
+}
+
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
-  return pifus_operation_result_ring_buffer_get(
+
+  bool success = pifus_operation_result_ring_buffer_get(
       &socket->cqueue, socket->cqueue_buffer, operation_result);
+
+  if (success && operation_result->code == TCP_WRITE) {
+    free_write_buffers(app_state, operation_result->data.write.block_offset);
+  }
+
+  return success;
 }
 
 void pifus_socket_wait(struct pifus_socket *socket,

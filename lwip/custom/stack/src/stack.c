@@ -73,11 +73,6 @@ err_t tcp_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {
   return ERR_OK;
 }
 
-void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset) {
-  struct pifus_memory_block *block = shm_data_get_block_ptr(app, block_offset);
-  shm_data_free(app, block);
-}
-
 err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   struct pifus_socket *socket = arg;
   pifus_debug_log("pifus: tcp_sent_callback called for (%u/%u)!\n",
@@ -96,10 +91,7 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     struct pifus_operation_result operation_result;
     operation_result.code = TCP_WRITE;
     operation_result.result_code = PIFUS_OK;
-
-    // free TX buffer
-    struct pifus_app *app = app_ptrs[socket->identifier.app_index];
-    free_write_buffers(app, write_queue_entry->write_block_offset);
+    operation_result.data.write.block_offset = write_queue_entry->write_block_offset;
 
     // TODO: just for dequeing. maybe add erase_first() method which just
     // removes first entry
@@ -170,11 +162,6 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
     pifus_log("pifus: could not tcp_write as err is '%i' Freeing memory.!\n",
               result);
     operation_result.result_code = PIFUS_ERR;
-
-    // in case we could not even send the payload, we free it here again.
-    struct pifus_memory_block *block =
-        shm_data_get_block_ptr(app, write_data->block_offset);
-    shm_data_free(app, block);
   }
 
   return operation_result;
