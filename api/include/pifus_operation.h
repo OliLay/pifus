@@ -47,12 +47,12 @@ struct pifus_connect_data {
  * Data needed for the write operation.
  */
 struct pifus_write_data {
-  ptrdiff_t block_offset;
+  uint64_t block_offset;
 };
 
 struct pifus_write_queue_entry {
   size_t size;
-  ptrdiff_t write_block_offset;
+  uint64_t write_block_offset;
 };
 
 

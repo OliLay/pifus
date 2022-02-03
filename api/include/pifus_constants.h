@@ -6,7 +6,7 @@
 
 /* App shmem */
 #define SHM_APP_NAME_PREFIX "/app"
-#define SHM_APP_SIZE 100000
+#define SHM_APP_SIZE 1000000
 
 /* Socket shmem */
 #define SHM_SOCKET_NAME_PREFIX "-socket"
@@ -20,12 +20,12 @@
 #define MAX_SOCKETS_PER_APP 100
 
 /* socket */
-#define SQUEUE_SIZE 100
-#define CQUEUE_SIZE 100
+#define SQUEUE_SIZE 10
+#define CQUEUE_SIZE 10
 #define WRITE_QUEUE_SIZE 100
 
 /* TX */
-#define TX_QUEUE_SIZE 1024
+#define TX_QUEUE_SIZE 100
 #define TX_WAIT_TIMEOUT_SEC 1
 #define TX_MAX_FUTEXES_PER_THREAD 128
 

@@ -58,7 +58,7 @@ struct pifus_app {
 struct pifus_memory_block {
   bool free;
   size_t size;
-  ptrdiff_t prev_block_offset;
+  uint64_t prev_block_offset;
 };
 
 /**
@@ -95,7 +95,7 @@ void shm_unlink_region(char *shm_name);
  * @return false If allocation was _not_ successful.
  */
 bool shm_data_allocate(struct pifus_app *app_region, size_t size,
-                       ptrdiff_t *ptr_offset,
+                       uint64_t *ptr_offset,
                        struct pifus_memory_block **block);
 
 /**
@@ -115,7 +115,7 @@ void shm_data_free(struct pifus_app *app_region,
  * @return Ptr to memory block.
  */
 struct pifus_memory_block *shm_data_get_block_ptr(struct pifus_app *app_region,
-                                                  ptrdiff_t block_offset);
+                                                  uint64_t block_offset);
 
 /**
  * @brief Convenience function for getting the data ptr of a

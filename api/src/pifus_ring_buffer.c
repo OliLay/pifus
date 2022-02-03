@@ -85,21 +85,47 @@
 
 #define RING_BUFFER_FN_PEEK(NAME, ELEMENT_TYPE)                                \
   bool NAME##_peek(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,          \
-                   ELEMENT_TYPE **pel) {                                        \
+                   ELEMENT_TYPE **pel) {                                       \
     uint16_t tail = ring_buffer->tail;                                         \
     if (ring_buffer->head != tail) { /* ring buffer NOT empty? */              \
-      *pel = &buf[tail];                                                        \
+      *pel = &buf[tail];                                                       \
       return true;                                                             \
     } else {                                                                   \
       return false;                                                            \
     }                                                                          \
   }
 
+#define RING_BUFFER_FN_ERASE_FIRST(NAME)                                       \
+  bool NAME##_erase_first(struct NAME *const ring_buffer) {                    \
+    uint16_t tail = ring_buffer->tail;                                         \
+    if (ring_buffer->head != tail) { /* ring buffer NOT empty? */              \
+      ++tail;                                                                  \
+      if (tail == ring_buffer->end) {                                          \
+        tail = 0U;                                                             \
+      }                                                                        \
+      ring_buffer->tail = tail; /* update the tail to a *valid* index */       \
+      return true;                                                             \
+    } else {                                                                   \
+      return false;                                                            \
+    }                                                                          \
+  }
+
+#define RING_BUFFER_FN_IS_FULL(NAME)                                           \
+  bool NAME##_is_full(struct NAME *const ring_buffer) {                        \
+    uint16_t head = ring_buffer->head + 1U;                                    \
+    if (head == ring_buffer->end) {                                            \
+      head = 0U;                                                               \
+    }                                                                          \
+    return head == ring_buffer->tail;                                          \
+  }
+
 #define RING_BUFFER_SOURCE_DEFS(NAME, ELEMENT_TYPE)                            \
   RING_BUFFER_FN_CREATE(NAME)                                                  \
   RING_BUFFER_FN_GET(NAME, ELEMENT_TYPE)                                       \
   RING_BUFFER_FN_PEEK(NAME, ELEMENT_TYPE)                                      \
-  RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)
+  RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)                                       \
+  RING_BUFFER_FN_ERASE_FIRST(NAME)                                             \
+  RING_BUFFER_FN_IS_FULL(NAME)
 
 RING_BUFFER_SOURCE_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
 RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer,

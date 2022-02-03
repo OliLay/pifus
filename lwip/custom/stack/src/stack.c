@@ -159,9 +159,11 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
 
     tcp_sent(pcb, &tcp_sent_callback);
   } else {
-    pifus_log("pifus: could not tcp_write as err is '%i' Freeing memory.!\n",
+    pifus_log("pifus: could not tcp_write as err is '%i'\n",
               result);
     operation_result.result_code = PIFUS_ERR;
+
+    // TODO: maybe think of queueing for later and returning to squeue
   }
 
   return operation_result;

@@ -15,11 +15,16 @@
 #include "utils/log.h"
 
 struct pifus_socket *map_socket_region(void);
-void enqueue_operation(struct pifus_socket *socket,
+bool is_queue_full(struct pifus_socket *socket);
+bool enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op);
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result);
-void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset);
+void free_write_buffers(struct pifus_app *app, uint64_t block_offset);
+
+bool is_queue_full(struct pifus_socket *socket) {
+  return pifus_operation_ring_buffer_is_full(&socket->squeue);
+}
 
 struct pifus_socket *map_socket_region(void) {
   app_state->highest_socket_number++;
@@ -36,16 +41,17 @@ struct pifus_socket *map_socket_region(void) {
   return (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
 }
 
-void enqueue_operation(struct pifus_socket *socket,
+bool enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op) {
   if (!pifus_operation_ring_buffer_put(&socket->squeue, socket->squeue_buffer,
                                        op)) {
     pifus_log("pifus: Could not enqueue to squeue, maybe its full?\n");
-    return;
+    return false;
   }
 
   socket->squeue_futex++;
   futex_wake(&socket->squeue_futex);
+  return true;
 }
 
 struct pifus_socket *pifus_socket(enum protocol protocol) {
@@ -65,8 +71,11 @@ struct pifus_socket *pifus_socket(enum protocol protocol) {
   return socket;
 }
 
-void pifus_socket_bind(struct pifus_socket *socket, enum pifus_ip_type ip_type,
+bool pifus_socket_bind(struct pifus_socket *socket, enum pifus_ip_type ip_type,
                        uint16_t port) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
   struct pifus_operation bind_operation;
 
   if (socket->protocol == PROTOCOL_TCP) {
@@ -78,11 +87,15 @@ void pifus_socket_bind(struct pifus_socket *socket, enum pifus_ip_type ip_type,
   bind_operation.data.bind.ip_type = ip_type;
   bind_operation.data.bind.port = port;
 
-  enqueue_operation(socket, bind_operation);
+  return enqueue_operation(socket, bind_operation);
 }
 
-void pifus_socket_connect(struct pifus_socket *socket,
+bool pifus_socket_connect(struct pifus_socket *socket,
                           struct pifus_ip_addr ip_addr, uint16_t port) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
+
   struct pifus_operation connect_operation;
 
   if (socket->protocol == PROTOCOL_TCP) {
@@ -94,10 +107,14 @@ void pifus_socket_connect(struct pifus_socket *socket,
   connect_operation.data.connect.ip_addr = ip_addr;
   connect_operation.data.connect.port = port;
 
-  enqueue_operation(socket, connect_operation);
+  return enqueue_operation(socket, connect_operation);
 }
 
 bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
+
   struct pifus_operation write_operation;
 
   if (socket->protocol == PROTOCOL_TCP) {
@@ -106,7 +123,7 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
     write_operation.code = UDP_SEND;
   }
 
-  ptrdiff_t block_offset;
+  uint64_t block_offset;
   struct pifus_memory_block *block = NULL;
 
   if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
@@ -118,12 +135,10 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
 
   write_operation.data.write.block_offset = block_offset;
 
-  enqueue_operation(socket, write_operation);
-
-  return true;
+  return enqueue_operation(socket, write_operation);
 }
 
-void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset) {
+void free_write_buffers(struct pifus_app *app, uint64_t block_offset) {
   struct pifus_memory_block *block = shm_data_get_block_ptr(app, block_offset);
   shm_data_free(app, block);
 }
@@ -134,11 +149,22 @@ bool dequeue_operation(struct pifus_socket *socket,
   bool success = pifus_operation_result_ring_buffer_get(
       &socket->cqueue, socket->cqueue_buffer, operation_result);
 
-  if (success && operation_result->code == TCP_WRITE) {
-    free_write_buffers(app_state, operation_result->data.write.block_offset);
+  if (success) {
+    if (operation_result->code == TCP_WRITE) {
+      free_write_buffers(app_state, operation_result->data.write.block_offset);
+    }
+    pifus_debug_log("Dequeued from cqueue\n");
+  } else {
+    pifus_debug_log("Could not dequeue from cqueue. No item?\n");
   }
 
   return success;
+}
+
+bool pifus_socket_get_latest_result(
+    struct pifus_socket *socket,
+    struct pifus_operation_result *operation_result) {
+  return dequeue_operation(socket, operation_result);
 }
 
 void pifus_socket_wait(struct pifus_socket *socket,

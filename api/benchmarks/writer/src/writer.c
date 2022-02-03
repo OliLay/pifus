@@ -2,18 +2,18 @@
 
 /* standard includes */
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
 /* local includes */
 #include "pifus.h"
-#include "pifus_socket.h"
 #include "pifus_ip.h"
+#include "pifus_socket.h"
 #include "writer.h"
 
-void print_result(struct pifus_operation_result* result) {
+void print_result(struct pifus_operation_result *result) {
   printf("Result returned: opcode %s, result code %u \n",
-           operation_str(result->code), result->result_code);
+         operation_str(result->code), result->result_code);
 }
 
 int main(int argc, char *argv[]) {
@@ -44,23 +44,38 @@ int main(int argc, char *argv[]) {
   print_result(&operation_result);
 
   sleep(1);
-  
+
   int i = 1;
   while (true) {
     char *loop_data;
-    asprintf(&loop_data, "%s%i%s", "Sepp ist ein großartiges Katzenwesen. #", i, "\n");
-    
-    pifus_socket_write(socket, loop_data, strlen(loop_data));
+    asprintf(&loop_data, "%s%i%s", "Sepp ist ein großartiges Katzenwesen. #", i,
+             "\n");
 
-    if (i % 2 == 0) {
-      pifus_socket_wait(socket, &operation_result);
-      print_result(&operation_result);
-
-      pifus_socket_wait(socket, &operation_result);
+    while (pifus_socket_get_latest_result(socket, &operation_result)) {
       print_result(&operation_result);
     }
 
-    i++;
+    if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
+      i++;
+    } else {
+      while (pifus_socket_get_latest_result(socket, &operation_result)) {
+        print_result(&operation_result);
+      }
+      printf("Queue is full, could not write!\n");
+    }
+
+    // if (!pifus_socket_write(socket, loop_data, strlen(loop_data))) {
+    //   pifus_socket_wait(socket, &operation_result);
+    //  print_result(&operation_result);
+    //}
+
+    // if (i % 2 == 0) {
+    //  pifus_socket_wait(socket, &operation_result);
+    //  print_result(&operation_result);
+
+    //  pifus_socket_wait(socket, &operation_result);
+    //  print_result(&operation_result);
+    //}
   }
 
   /**
