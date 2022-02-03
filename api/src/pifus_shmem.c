@@ -88,7 +88,7 @@ struct pifus_memory_block *shm_data_next_suitable_block(
       // end of memory region, no suitable block found.
 
       pifus_log("pifus_shm: End of memory region reached, no suitable block "
-                "found for size %u\n!",
+                "found for size %u!\n",
                 size);
       return NULL;
     }

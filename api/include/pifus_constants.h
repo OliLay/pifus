@@ -20,9 +20,8 @@
 #define MAX_SOCKETS_PER_APP 100
 
 /* socket */
-#define NON_EXISTENT_SOCKET_INDEX 0
-#define SQUEUE_SIZE 10
-#define CQUEUE_SIZE 10
+#define SQUEUE_SIZE 100
+#define CQUEUE_SIZE 100
 #define WRITE_QUEUE_SIZE 100
 
 /* TX */

@@ -43,20 +43,26 @@ struct pifus_tx_queue tx_queue;
 
 void enqueue_in_cqueue(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
-  pifus_debug_log("pifus: Enqueuing into cqueue from socket %u in app %u\n",
-                  socket->identifier.socket_index,
-                  socket->identifier.app_index);
-  pifus_operation_result_ring_buffer_put(&socket->cqueue, socket->cqueue_buffer,
-                                         *operation_result);
-  socket->cqueue_futex++;
-  futex_wake(&socket->cqueue_futex);
+
+  if (pifus_operation_result_ring_buffer_put(
+          &socket->cqueue, socket->cqueue_buffer, *operation_result)) {
+    pifus_debug_log("pifus: Enqueuing into cqueue for (%u/%u)\n",
+                    socket->identifier.app_index,
+                    socket->identifier.socket_index);
+
+    socket->cqueue_futex++;
+    futex_wake(&socket->cqueue_futex);
+  } else {
+    pifus_log("pifus: Could not put into cqueue for (%u/%u). Is it full?\n",
+              socket->identifier.app_index, socket->identifier.socket_index);
+  }
 }
 
 err_t tcp_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {
   struct pifus_socket *socket = arg;
-  pifus_debug_log(
-      "pifus: tcp_connected_callback called for socket %u in app %u!\n",
-      socket->identifier.socket_index, socket->identifier.app_index);
+  pifus_debug_log("pifus: tcp_connected_callback called for (%u/%u)!\n",
+                  socket->identifier.app_index,
+                  socket->identifier.socket_index);
 
   struct pifus_operation_result operation_result;
   operation_result.code = TCP_CONNECT;
@@ -74,11 +80,10 @@ void free_write_buffers(struct pifus_app *app, ptrdiff_t block_offset) {
 
 err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   struct pifus_socket *socket = arg;
-  pifus_debug_log("pifus: tcp_sent_callback called for socket %u in app %u!\n",
-                  socket->identifier.socket_index,
-                  socket->identifier.app_index);
+  pifus_debug_log("pifus: tcp_sent_callback called for (%u/%u)!\n",
+                  socket->identifier.app_index,
+                  socket->identifier.socket_index);
 
-  // TODO: check if amount of write has really been written
   struct pifus_write_queue_entry *write_queue_entry;
   if (!pifus_write_queue_peek(&socket->write_queue, socket->write_queue_buffer,
                               &write_queue_entry)) {
@@ -87,8 +92,7 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
         "callback! Can't notify app that write was successful.\n");
   }
 
-  size_t first_size = write_queue_entry->size;
-  if (first_size <= len) {
+  if (write_queue_entry->size <= len) {
     struct pifus_operation_result operation_result;
     operation_result.code = TCP_WRITE;
     operation_result.result_code = PIFUS_OK;
@@ -97,20 +101,20 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     struct pifus_app *app = app_ptrs[socket->identifier.app_index];
     free_write_buffers(app, write_queue_entry->write_block_offset);
 
-    // just for dequeing. maybe add erase_first() method which just removes
-    // first entry
+    // TODO: just for dequeing. maybe add erase_first() method which just
+    // removes first entry
     pifus_write_queue_get(&socket->write_queue, socket->write_queue_buffer,
                           write_queue_entry);
 
     enqueue_in_cqueue(socket, &operation_result);
 
-    if (first_size < len) {
+    if (write_queue_entry->size < len) {
       // we need to consider further entries in the queue
-      return tcp_sent_callback(arg, tpcb, len - first_size);
+      return tcp_sent_callback(arg, tpcb, len - write_queue_entry->size);
     }
   } else {
     // update len of first element in queue
-    write_queue_entry->size = first_size - len;
+    write_queue_entry->size = write_queue_entry->size - len;
   }
 
   return ERR_OK;
@@ -160,13 +164,17 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
       pifus_log("pifus: Could not store write length in write_queue_buffer as "
                 "it is full!\n");
     }
-    tcp_sent(pcb, &tcp_sent_callback);
 
-    // TODO: Remove after debugging
-    fwrite(data_ptr, sizeof(char), block->size, stdout);
+    tcp_sent(pcb, &tcp_sent_callback);
   } else {
-    pifus_log("pifus: could not tcp_write!\n");
+    pifus_log("pifus: could not tcp_write as err is '%i' Freeing memory.!\n",
+              result);
     operation_result.result_code = PIFUS_ERR;
+
+    // in case we could not even send the payload, we free it here again.
+    struct pifus_memory_block *block =
+        shm_data_get_block_ptr(app, write_data->block_offset);
+    shm_data_free(app, block);
   }
 
   return operation_result;

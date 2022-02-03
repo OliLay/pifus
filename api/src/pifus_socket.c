@@ -17,6 +17,8 @@
 struct pifus_socket *map_socket_region(void);
 void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op);
+bool dequeue_operation(struct pifus_socket *socket,
+                       struct pifus_operation_result *operation_result);
 void free_write_buffers(struct pifus_operation_result *operation_result);
 
 struct pifus_socket *map_socket_region(void) {
@@ -36,7 +38,8 @@ struct pifus_socket *map_socket_region(void) {
 
 void enqueue_operation(struct pifus_socket *socket,
                        struct pifus_operation const op) {
-  if (!pifus_operation_ring_buffer_put(&socket->squeue, socket->squeue_buffer, op)) {
+  if (!pifus_operation_ring_buffer_put(&socket->squeue, socket->squeue_buffer,
+                                       op)) {
     pifus_log("pifus: Could not enqueue to squeue, maybe its full?\n");
     return;
   }
@@ -120,12 +123,15 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   return true;
 }
 
+bool dequeue_operation(struct pifus_socket *socket,
+                       struct pifus_operation_result *operation_result) {
+  return pifus_operation_result_ring_buffer_get(
+      &socket->cqueue, socket->cqueue_buffer, operation_result);
+}
+
 void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
-  if (pifus_operation_result_ring_buffer_get(
-          &socket->cqueue, socket->cqueue_buffer, operation_result)) {
-    // TODO:
-    //free_write_buffers(operation_result);
+  if (dequeue_operation(socket, operation_result)) {
     return;
   }
 
@@ -133,14 +139,10 @@ void pifus_socket_wait(struct pifus_socket *socket,
     if (futex_wait(&socket->cqueue_futex, socket->cqueue_futex) < 0) {
       pifus_debug_log("pifus: futex_wait in socket_poll returned %s\n",
                       strerror(errno));
-    } else {
-      if (pifus_operation_result_ring_buffer_get(
-              &socket->cqueue, socket->cqueue_buffer, operation_result)) {
-       // TODO:
-       // free_write_buffers(operation_result);
+    }
 
-        return;
-      }
+    if (dequeue_operation(socket, operation_result)) {
+      return;
     }
   }
 }
