@@ -2,7 +2,7 @@
 #define PIFUS_CONSTANTS_H
 
 /* debug */
-#define PIFUS_DEBUG
+//#define PIFUS_DEBUG
 
 /* App shmem */
 #define SHM_APP_NAME_PREFIX "/app"
@@ -23,6 +23,9 @@
 #define SQUEUE_SIZE 10
 #define CQUEUE_SIZE 10
 #define WRITE_QUEUE_SIZE 100
+
+/* stack */
+#define MAX_DEQUEUES_PER_ITERATION 32
 
 /* TX */
 #define TX_QUEUE_SIZE 100

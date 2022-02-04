@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 /* local includes */
 #include "pifus.h"
@@ -61,8 +62,9 @@ int main(int argc, char *argv[]) {
       while (pifus_socket_get_latest_result(socket, &operation_result)) {
         print_result(&operation_result);
       }
-     // printf("Queue is full, could not write!\n");
     }
+
+    free(loop_data);
 
     // if (!pifus_socket_write(socket, loop_data, strlen(loop_data))) {
     //   pifus_socket_wait(socket, &operation_result);

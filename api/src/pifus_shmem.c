@@ -86,10 +86,13 @@ struct pifus_memory_block *shm_data_next_suitable_block(
   bool block_exists = current_block->size > 0;
 
   if (!block_exists) {
-    pifus_log("Appending block to end!\n");
     // append to end
+    if (shm_data_is_ptr_out_of_range(
+            app,
+            (uint8_t *)shm_data_get_data_ptr(current_block) + desired_size)) {
+      return NULL;
+    }
 
-    // TODO: check if out of bounds with data, if yes, return NULL
     current_block->size = desired_size;
 
     if (previous_block == NULL) {
@@ -213,9 +216,6 @@ shm_data_get_next_block_ptr(struct pifus_app *app,
 void shm_data_free(struct pifus_app *app, struct pifus_memory_block *block) {
   struct pifus_memory_block *next_block =
       shm_data_get_next_block_ptr(app, block);
-
-  pifus_log("Trying to free block offset %u, size %u\n",
-            shm_data_get_offset(app, block), block->size);
 
   bool exists_previous_block = block->prev_block_offset >= 0;
   bool exists_next_block = next_block != NULL && next_block->size > 0;

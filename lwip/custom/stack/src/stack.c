@@ -40,6 +40,10 @@ struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
  * TX operations from all sockets.
  */
 struct pifus_tx_queue tx_queue;
+/**
+ * True when the send buffer is full, else false.
+ */
+bool send_buffer_full = false;
 
 void enqueue_in_cqueue(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
@@ -53,8 +57,9 @@ void enqueue_in_cqueue(struct pifus_socket *socket,
     socket->cqueue_futex++;
     futex_wake(&socket->cqueue_futex);
   } else {
-    pifus_log("pifus: Could not put into cqueue for (%u/%u). Is it full?\n",
-              socket->identifier.app_index, socket->identifier.socket_index);
+    pifus_debug_log(
+        "pifus: Could not put into cqueue for (%u/%u). Is it full?\n",
+        socket->identifier.app_index, socket->identifier.socket_index);
   }
 }
 
@@ -91,12 +96,10 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     struct pifus_operation_result operation_result;
     operation_result.code = TCP_WRITE;
     operation_result.result_code = PIFUS_OK;
-    operation_result.data.write.block_offset = write_queue_entry->write_block_offset;
+    operation_result.data.write.block_offset =
+        write_queue_entry->write_block_offset;
 
-    // TODO: just for dequeing. maybe add erase_first() method which just
-    // removes first entry
-    pifus_write_queue_get(&socket->write_queue, socket->write_queue_buffer,
-                          write_queue_entry);
+    pifus_write_queue_erase_first(&socket->write_queue);
 
     enqueue_in_cqueue(socket, &operation_result);
 
@@ -159,11 +162,13 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
 
     tcp_sent(pcb, &tcp_sent_callback);
   } else {
-    pifus_log("pifus: could not tcp_write as err is '%i'\n",
-              result);
-    operation_result.result_code = PIFUS_ERR;
-
-    // TODO: maybe think of queueing for later and returning to squeue
+    if (result == ERR_MEM) {
+      send_buffer_full = true;
+      operation_result.result_code = PIFUS_TRY_AGAIN;
+    } else {
+      pifus_log("pifus: could not tcp_write as err is '%i'\n", result);
+      operation_result.result_code = PIFUS_ERR;
+    }
   }
 
   return operation_result;
@@ -263,42 +268,45 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
 }
 
 void lwip_loop_iteration(void) {
-  /** TODO:
-   * - [TODO] distribute RX packets
-   * - [IN PROGRESS] TX handling (from TX thread via queue)
-   */
+  uint8_t dequeued_operations = 0;
 
-  struct pifus_internal_operation tx_op;
-  while (pifus_tx_ring_buffer_get(&tx_queue.ring_buffer,
-                                  tx_queue.tx_queue_buffer, &tx_op)) {
-    const app_index_t app_index = tx_op.socket->identifier.app_index;
-    const socket_index_t socket_index = tx_op.socket->identifier.socket_index;
+  struct pifus_internal_operation *tx_op;
+  /** TODO: currently, a full SNDBUF holds up everything.
+    solution: independent WRITE_QUEUE **/
+  while (!send_buffer_full &&
+         dequeued_operations < MAX_DEQUEUES_PER_ITERATION &&
+         pifus_tx_ring_buffer_peek(&tx_queue.ring_buffer,
+                                   tx_queue.tx_queue_buffer, &tx_op)) {
+    const app_index_t app_index = tx_op->socket->identifier.app_index;
+    const socket_index_t socket_index = tx_op->socket->identifier.socket_index;
 
-    pifus_log("pifus: Operation received from app%u/socket%u: %s\n", app_index,
-              socket_index, operation_str(tx_op.operation.code));
+    pifus_debug_log("pifus: Operation received from app%u/socket%u: %s\n",
+                    app_index, socket_index,
+                    operation_str(tx_op->operation.code));
 
-    struct pifus_operation_result operation_result = process_tx_op(&tx_op);
+    struct pifus_operation_result operation_result = process_tx_op(tx_op);
+
+    if (operation_result.result_code == PIFUS_TRY_AGAIN) {
+      pifus_debug_log("pifus: Not dequeing op, trying again later. (probably "
+                      "SNDBUFFER full)\n",
+                      app_index, socket_index);
+      continue;
+    }
 
     if (operation_result.result_code == PIFUS_ASYNC) {
       pifus_debug_log("pifus: Async operation triggered in lwIP, not enqueing "
                       "into cqueue for %u in app %u\n",
                       app_index, socket_index);
     } else {
-      enqueue_in_cqueue(tx_op.socket, &operation_result);
+      enqueue_in_cqueue(tx_op->socket, &operation_result);
+      pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
     }
 
-    /**
-     * TODO:
-     *  - take action depending on op (e.g. call send, recv)
-     *  - for some operation types, we need a look up the operation
-     * afterwards, e.g. for recv
-     *      - we dequeue TX op here and call recv()
-     *      - recv_callback() is called later on
-     *      - we then have to look up the recv operation again to find
-     *  - for other operation types, such as write, we can directly execute
-     * the action and insert something into cqueue
-     */
+    pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
+    dequeued_operations++;
   }
+
+  send_buffer_full = false;
 }
 
 void lwip_init_complete(void) {

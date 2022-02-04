@@ -154,8 +154,6 @@ bool dequeue_operation(struct pifus_socket *socket,
       free_write_buffers(app_state, operation_result->data.write.block_offset);
     }
     pifus_debug_log("Dequeued from cqueue\n");
-  } else {
-    pifus_debug_log("Could not dequeue from cqueue. No item?\n");
   }
 
   return success;

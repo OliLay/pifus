@@ -55,7 +55,6 @@ struct pifus_write_queue_entry {
   uint64_t write_block_offset;
 };
 
-
 struct pifus_operation {
   enum pifus_operation_code code;
 
@@ -75,7 +74,17 @@ struct pifus_internal_operation {
   struct pifus_socket *socket;
 };
 
-enum pifus_result_code { PIFUS_OK = 0, PIFUS_ERR = 1, PIFUS_ASYNC = 2 };
+enum pifus_result_code {
+  /* Everything fine */
+  PIFUS_OK = 0,
+  /* Error */
+  PIFUS_ERR = 1,
+  /* Operation is performed asynchronously. */
+  PIFUS_ASYNC = 100,
+  /* Try again to execute this operation, current state
+  does not allow execution */
+  PIFUS_TRY_AGAIN = 101
+};
 
 struct pifus_operation_result {
   enum pifus_operation_code code;
