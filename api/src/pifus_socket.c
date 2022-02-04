@@ -123,7 +123,7 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
     write_operation.code = UDP_SEND;
   }
 
-  uint64_t block_offset;
+  int64_t block_offset;
   struct pifus_memory_block *block = NULL;
 
   if (!shm_data_allocate(app_state, size, &block_offset, &block)) {

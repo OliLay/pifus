@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
       while (pifus_socket_get_latest_result(socket, &operation_result)) {
         print_result(&operation_result);
       }
-      printf("Queue is full, could not write!\n");
+     // printf("Queue is full, could not write!\n");
     }
 
     // if (!pifus_socket_write(socket, loop_data, strlen(loop_data))) {

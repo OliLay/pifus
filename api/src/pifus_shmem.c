@@ -18,16 +18,15 @@
 
 struct pifus_memory_block *shm_data_next_suitable_block(
     struct pifus_app *app, struct pifus_memory_block *previous_block,
-    struct pifus_memory_block *current_block, size_t size,
-    struct pifus_memory_block **previous_block_out,
-    struct pifus_memory_block **next_block_out);
+    struct pifus_memory_block *current_block, size_t desired_size);
 void shm_data_delete_block(struct pifus_memory_block *block);
 struct pifus_memory_block *
 shm_data_get_next_block_ptr(struct pifus_app *app,
                             struct pifus_memory_block *block);
-uint64_t shm_data_get_offset(struct pifus_app *app,
-                              struct pifus_memory_block *block);
+int64_t shm_data_get_offset(struct pifus_app *app,
+                            struct pifus_memory_block *block);
 bool shm_data_is_ptr_out_of_range(struct pifus_app *app, void *ptr);
+void print_memory(struct pifus_app *app);
 
 int shm_open_region(char *shm_name, bool create) {
   int flags = O_RDWR | O_EXCL;
@@ -68,64 +67,95 @@ void *shm_map_region(int fd, size_t size, bool create) {
 
 void shm_unlink_region(char *shm_name) { shm_unlink(shm_name); }
 
+// TODO: remove after debugging.
+void print_memory(struct pifus_app *app) {
+  struct pifus_memory_block *next_block = shm_data_get_block_ptr(app, 0);
+
+  while (next_block != NULL && next_block->size > 0) {
+    printf("|| free %i offset %li size %lu ", next_block->free,
+           shm_data_get_offset(app, next_block), next_block->size);
+    next_block = shm_data_get_next_block_ptr(app, next_block);
+  }
+  printf("\n");
+}
+
 struct pifus_memory_block *shm_data_next_suitable_block(
     struct pifus_app *app, struct pifus_memory_block *previous_block,
-    struct pifus_memory_block *current_block, size_t size,
-    struct pifus_memory_block **previous_block_out,
-    struct pifus_memory_block **next_block_out) {
+    struct pifus_memory_block *current_block, size_t desired_size) {
 
   bool block_exists = current_block->size > 0;
-  bool block_exactly_that_size = block_exists && current_block->size == size && current_block->free;
-  bool block_large_enough =
-      block_exists && current_block->size > size &&
-      current_block->size - size > sizeof(struct pifus_memory_block) && current_block->free;
-  bool block_suitable = block_exactly_that_size || block_large_enough;
+
+  if (!block_exists) {
+    pifus_log("Appending block to end!\n");
+    // append to end
+
+    // TODO: check if out of bounds with data, if yes, return NULL
+    current_block->size = desired_size;
+
+    if (previous_block == NULL) {
+      current_block->prev_block_offset = -1;
+    } else {
+      current_block->prev_block_offset =
+          shm_data_get_offset(app, previous_block);
+    }
+
+    return current_block;
+  }
 
   struct pifus_memory_block *next_block =
       shm_data_get_next_block_ptr(app, current_block);
 
-  if (!block_exists || block_suitable) {
-    if (!block_exists) {
-      current_block->size = size;
-      *next_block_out = NULL;
-    } else if (block_large_enough) {
-      // need to create new next block and link old next block to it.
-      size_t new_next_block_size = current_block->size - size - sizeof(struct pifus_memory_block);
-      current_block->size = size;
+  bool block_exactly_that_size = block_exists &&
+                                 current_block->size == desired_size &&
+                                 current_block->free;
+  if (block_exactly_that_size) {
+    // reuse, we do not have to change the block, it was already there, just
+    // change its content
+    return current_block;
+  }
 
-      struct pifus_memory_block *new_next_block = shm_data_get_next_block_ptr(app, current_block);
-      new_next_block->free = true;
-      // TODO: this won't work when the difference is very small
-      new_next_block->size = new_next_block_size;
+  bool block_large_enough =
+      block_exists && current_block->size > desired_size &&
+      current_block->size - desired_size > sizeof(struct pifus_memory_block) &&
+      current_block->free;
 
+  if (block_large_enough) {
+    // split block into two blocks.
+    // First one has desired size, second one the difference
+    size_t pre_split_size = current_block->size;
+
+    current_block->size = desired_size;
+    struct pifus_memory_block *new_next_block =
+        shm_data_get_next_block_ptr(app, current_block);
+
+    new_next_block->free = true;
+    new_next_block->size =
+        pre_split_size - desired_size - sizeof(struct pifus_memory_block);
+
+    new_next_block->prev_block_offset = shm_data_get_offset(app, current_block);
+
+    if (next_block != NULL && next_block->size > 0) {
       next_block->prev_block_offset = shm_data_get_offset(app, new_next_block);
-
-      *next_block_out = new_next_block;
     }
-
-    *previous_block_out = previous_block;
 
     return current_block;
+  }
+
+  if (next_block != NULL) {
+    return shm_data_next_suitable_block(app, current_block, next_block,
+                                        desired_size);
   } else {
-    if (next_block != NULL) {
-      return shm_data_next_suitable_block(app, current_block, next_block, size,
-                                          previous_block_out, next_block_out);
-    } else {
-      return NULL;
-    }
+    return NULL;
   }
 }
 
-bool shm_data_allocate(struct pifus_app *app_region, size_t size,
-                       uint64_t *ptr_offset,
+bool shm_data_allocate(struct pifus_app *app, size_t size, int64_t *ptr_offset,
                        struct pifus_memory_block **block) {
   struct pifus_memory_block *start_block =
-      (struct pifus_memory_block *)(app_region + 1);
+      (struct pifus_memory_block *)(app + 1);
 
-  struct pifus_memory_block *previous_block = NULL;
-  struct pifus_memory_block *next_block = NULL;
-  struct pifus_memory_block *allocating_block = shm_data_next_suitable_block(
-      app_region, NULL, start_block, size, &previous_block, &next_block);
+  struct pifus_memory_block *allocating_block =
+      shm_data_next_suitable_block(app, NULL, start_block, size);
 
   if (allocating_block == NULL) {
     return false;
@@ -133,19 +163,8 @@ bool shm_data_allocate(struct pifus_app *app_region, size_t size,
 
   allocating_block->free = false;
 
-  if (previous_block != NULL) {
-    allocating_block->prev_block_offset =
-        (uint8_t *)previous_block - (uint8_t *)start_block;
-  } else {
-    allocating_block->prev_block_offset = 0;
-  }
-
-  *ptr_offset = (uint8_t *)allocating_block - (uint8_t *)start_block;
+  *ptr_offset = shm_data_get_offset(app, allocating_block);
   *block = allocating_block;
-
-  if (next_block != NULL) {
-    next_block->prev_block_offset = *ptr_offset;
-  }
 
   pifus_debug_log("pifus_shm: Allocated block with size %u and offset %u "
                   "inside app data!\n",
@@ -170,8 +189,9 @@ bool shm_data_is_ptr_out_of_range(struct pifus_app *app, void *ptr) {
   return out_of_range;
 }
 
-uint64_t shm_data_get_offset(struct pifus_app *app,
-                              struct pifus_memory_block *block) {
+int64_t shm_data_get_offset(struct pifus_app *app,
+                            struct pifus_memory_block *block) {
+  // TODO: why -8?
   return (uint8_t *)block - (uint8_t *)app + sizeof(struct pifus_app) - 8;
 }
 
@@ -190,13 +210,14 @@ shm_data_get_next_block_ptr(struct pifus_app *app,
   }
 }
 
-void shm_data_free(struct pifus_app *app_region,
-                   struct pifus_memory_block *block) {
+void shm_data_free(struct pifus_app *app, struct pifus_memory_block *block) {
   struct pifus_memory_block *next_block =
-      shm_data_get_next_block_ptr(app_region, block);
+      shm_data_get_next_block_ptr(app, block);
 
-  bool exists_previous_block =
-      block->prev_block_offset > 0;
+  pifus_log("Trying to free block offset %u, size %u\n",
+            shm_data_get_offset(app, block), block->size);
+
+  bool exists_previous_block = block->prev_block_offset >= 0;
   bool exists_next_block = next_block != NULL && next_block->size > 0;
 
   if (!exists_previous_block && !exists_next_block) {
@@ -212,7 +233,7 @@ void shm_data_free(struct pifus_app *app_region,
   if (exists_previous_block) {
     // previous block exists
     struct pifus_memory_block *previous_block =
-        shm_data_get_block_ptr(app_region, block->prev_block_offset);
+        shm_data_get_block_ptr(app, block->prev_block_offset);
 
     if (previous_block->free) {
       if (exists_next_block) {
@@ -223,7 +244,7 @@ void shm_data_free(struct pifus_app *app_region,
       new_merged_block->size += sizeof(struct pifus_memory_block) + block->size;
 
       pifus_debug_log("pifus_shm: Freeing, merging with previous block "
-                      "(offset: %u). New (merged) block now has size %u\n",
+                      "(offset: %u). New (merged) block now has size %u.\n",
                       block->prev_block_offset, new_merged_block->size);
     }
   }
@@ -240,9 +261,9 @@ void shm_data_free(struct pifus_app *app_region,
   new_merged_block->free = true;
 }
 
-struct pifus_memory_block *shm_data_get_block_ptr(struct pifus_app *app_region,
-                                                  uint64_t block_offset) {
-  return (struct pifus_memory_block *)((uint8_t *)app_region +
+struct pifus_memory_block *shm_data_get_block_ptr(struct pifus_app *app,
+                                                  int64_t block_offset) {
+  return (struct pifus_memory_block *)((uint8_t *)app +
                                        sizeof(struct pifus_app) + block_offset);
 }
 
