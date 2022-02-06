@@ -14,14 +14,18 @@
 #include "lwip/timeouts.h"
 
 /* pifus */
-#include "init.h"
 #include "pifus_shmem.h"
-#include "tx.h"
 #include "utils/futex.h"
 #include "utils/log.h"
 
 /* local includes */
+#include "bind.h"
+#include "connect.h"
+#include "init.h"
+#include "recv.h"
 #include "stack.h"
+#include "tx.h"
+#include "write.h"
 
 /**
  * app_ptrs[#app] -> ptr to shmem app region
@@ -40,10 +44,6 @@ struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
  * TX operations from all sockets.
  */
 struct pifus_tx_queue tx_queue;
-/**
- * True when the send buffer is full, else false.
- */
-bool send_buffer_full = false;
 
 void enqueue_in_cqueue(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
@@ -63,58 +63,6 @@ void enqueue_in_cqueue(struct pifus_socket *socket,
   }
 }
 
-err_t tcp_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {
-  struct pifus_socket *socket = arg;
-  pifus_debug_log("pifus: tcp_connected_callback called for (%u/%u)!\n",
-                  socket->identifier.app_index,
-                  socket->identifier.socket_index);
-
-  struct pifus_operation_result operation_result;
-  operation_result.code = TCP_CONNECT;
-  operation_result.result_code = PIFUS_OK;
-
-  enqueue_in_cqueue(socket, &operation_result);
-
-  return ERR_OK;
-}
-
-err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
-  struct pifus_socket *socket = arg;
-  pifus_debug_log("pifus: tcp_sent_callback called for (%u/%u)!\n",
-                  socket->identifier.app_index,
-                  socket->identifier.socket_index);
-
-  struct pifus_write_queue_entry *write_queue_entry;
-  if (!pifus_write_queue_peek(&socket->write_queue, socket->write_queue_buffer,
-                              &write_queue_entry)) {
-    pifus_log(
-        "pifus: Could not dequeue write_queue_entry from write_queue in sent "
-        "callback! Can't notify app that write was successful.\n");
-  }
-
-  if (write_queue_entry->size <= len) {
-    struct pifus_operation_result operation_result;
-    operation_result.code = TCP_WRITE;
-    operation_result.result_code = PIFUS_OK;
-    operation_result.data.write.block_offset =
-        write_queue_entry->write_block_offset;
-
-    pifus_write_queue_erase_first(&socket->write_queue);
-
-    enqueue_in_cqueue(socket, &operation_result);
-
-    if (write_queue_entry->size < len) {
-      // we need to consider further entries in the queue
-      return tcp_sent_callback(arg, tpcb, len - write_queue_entry->size);
-    }
-  } else {
-    // update len of first element in queue
-    write_queue_entry->size = write_queue_entry->size - len;
-  }
-
-  return ERR_OK;
-}
-
 void tcp_err_callback(void *arg, err_t err) {
   struct pifus_socket *socket = arg;
   pifus_log("pifus: tcp_err_callback called for socket %u in app %u!\n",
@@ -128,106 +76,6 @@ void tcp_err_callback(void *arg, err_t err) {
   operation_result.result_code = PIFUS_ERR;
 
   enqueue_in_cqueue(socket, &operation_result);
-}
-
-struct pifus_operation_result
-tx_tcp_write(struct pifus_internal_operation *internal_op) {
-  struct pifus_write_data *write_data = &internal_op->operation.data.write;
-  struct pifus_socket *socket = internal_op->socket;
-
-  struct pifus_app *app = app_ptrs[socket->identifier.app_index];
-  struct pifus_memory_block *block =
-      shm_data_get_block_ptr(app, write_data->block_offset);
-
-  void *data_ptr = shm_data_get_data_ptr(block);
-
-  struct tcp_pcb *pcb = socket->pcb.tcp;
-  err_t result = tcp_write(pcb, data_ptr, block->size, 0);
-
-  struct pifus_operation_result operation_result;
-  operation_result.data.write = internal_op->operation.data.write;
-  if (result == ERR_OK) {
-    pifus_debug_log("pifus: PIFUS -- *async* --> lwIP tcp_write succeeded!\n");
-    operation_result.result_code = PIFUS_ASYNC;
-
-    struct pifus_write_queue_entry write_queue_entry;
-    write_queue_entry.size = block->size;
-    write_queue_entry.write_block_offset = write_data->block_offset;
-
-    if (!pifus_write_queue_put(&socket->write_queue, socket->write_queue_buffer,
-                               write_queue_entry)) {
-      pifus_log("pifus: Could not store write length in write_queue_buffer as "
-                "it is full!\n");
-    }
-
-    tcp_sent(pcb, &tcp_sent_callback);
-  } else {
-    if (result == ERR_MEM) {
-      send_buffer_full = true;
-      operation_result.result_code = PIFUS_TRY_AGAIN;
-    } else {
-      pifus_log("pifus: could not tcp_write as err is '%i'\n", result);
-      operation_result.result_code = PIFUS_ERR;
-    }
-  }
-
-  return operation_result;
-}
-
-struct pifus_operation_result
-tx_tcp_connect(struct pifus_internal_operation *internal_op) {
-  struct pifus_connect_data *connect_data =
-      &internal_op->operation.data.connect;
-  struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
-
-  ip_addr_t reader_addr;
-  ipaddr_aton(connect_data->ip_addr.value, &reader_addr);
-
-  err_t result = tcp_connect(pcb, &reader_addr, connect_data->port,
-                             &tcp_connected_callback);
-
-  struct pifus_operation_result operation_result;
-  if (result == ERR_OK) {
-    pifus_debug_log(
-        "pifus: PIFUS -- *async* --> lwIP tcp_connect succeeded!\n");
-    operation_result.result_code = PIFUS_ASYNC;
-  } else {
-    pifus_log("pifus: could not tcp_connect!\n");
-    operation_result.result_code = PIFUS_ERR;
-  }
-
-  return operation_result;
-}
-
-struct pifus_operation_result
-tx_tcp_bind(struct pifus_internal_operation *internal_op) {
-  err_t result;
-  struct pifus_bind_data *bind_data = &internal_op->operation.data.bind;
-  struct tcp_pcb *pcb = internal_op->socket->pcb.tcp;
-  const ip_addr_t *ip_addr_type;
-
-  if (bind_data->ip_type == PIFUS_IPV4_ADDR) {
-    ip_addr_type = IP4_ADDR_ANY;
-  } else if (bind_data->ip_type == PIFUS_IPV6_ADDR) {
-    ip_addr_type = IP6_ADDR_ANY;
-  } else if (bind_data->ip_type == PIFUS_IPVX_ADDR) {
-    ip_addr_type = IP_ANY_TYPE;
-  } else {
-    pifus_log("pifus: unknown ip_type in bind()\n");
-  }
-
-  result = tcp_bind(pcb, ip_addr_type, bind_data->port);
-
-  struct pifus_operation_result operation_result;
-  if (result == ERR_OK) {
-    pifus_debug_log("pifus: PIFUS -> lwIP tcp_bind succeeded!\n");
-    operation_result.result_code = PIFUS_OK;
-  } else {
-    pifus_log("pifus: could not tcp_bind!\n");
-    operation_result.result_code = PIFUS_ERR;
-  }
-
-  return operation_result;
 }
 
 struct pifus_operation_result
@@ -252,6 +100,9 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
     case TCP_WRITE:
       operation_result = tx_tcp_write(internal_op);
       break;
+    case TCP_RECV:
+      operation_result = tx_tcp_recv(internal_op);
+      break;
     default:
       pifus_log("pifus: TX op code %u is not known!\n",
                 internal_op->operation.code);
@@ -272,7 +123,7 @@ void lwip_loop_iteration(void) {
 
   struct pifus_internal_operation *tx_op;
   /** TODO: currently, a full SNDBUF holds up everything.
-    solution: independent WRITE_QUEUE **/
+    solution: independent WRITE_QUEUE? **/
   while (!send_buffer_full &&
          dequeued_operations < MAX_DEQUEUES_PER_ITERATION &&
          pifus_tx_ring_buffer_peek(&tx_queue.ring_buffer,

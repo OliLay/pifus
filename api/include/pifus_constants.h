@@ -23,6 +23,7 @@
 #define SQUEUE_SIZE 10
 #define CQUEUE_SIZE 10
 #define WRITE_QUEUE_SIZE 100
+#define RECV_QUEUE_SIZE 100
 
 /* stack */
 #define MAX_DEQUEUES_PER_ITERATION 32

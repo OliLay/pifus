@@ -50,9 +50,22 @@ struct pifus_write_data {
   uint64_t block_offset;
 };
 
+/**
+ * Data needed for the recv operation.
+ */
+struct pifus_recv_data {
+  block_offset_t recv_block_offset;
+  size_t size;
+};
+
 struct pifus_write_queue_entry {
   size_t size;
   uint64_t write_block_offset;
+};
+
+struct pifus_recv_queue_entry {
+  size_t size;
+  uint64_t recv_block_offset;
 };
 
 struct pifus_operation {
@@ -62,6 +75,7 @@ struct pifus_operation {
     struct pifus_bind_data bind;
     struct pifus_connect_data connect;
     struct pifus_write_data write;
+    struct pifus_recv_data recv;
   } data;
 };
 
@@ -79,10 +93,11 @@ enum pifus_result_code {
   PIFUS_OK = 0,
   /* Error */
   PIFUS_ERR = 1,
+  /** Only internal operations below **/
   /* Operation is performed asynchronously. */
   PIFUS_ASYNC = 100,
-  /* Try again to execute this operation, current state
-  does not allow execution */
+  /* Try again (later) to execute this operation, current state
+  does not allow execution (e.g. when send buffer is full) */
   PIFUS_TRY_AGAIN = 101
 };
 
@@ -92,6 +107,7 @@ struct pifus_operation_result {
 
   union {
     struct pifus_write_data write;
+    struct pifus_recv_data recv;
   } data;
 };
 

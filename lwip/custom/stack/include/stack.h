@@ -26,4 +26,7 @@ void lwip_loop_iteration(void);
  */
 void lwip_init_complete(void);
 
+void enqueue_in_cqueue(struct pifus_socket *socket,
+                       struct pifus_operation_result *operation_result);
+
 #endif /* LWIP_STACK_H */

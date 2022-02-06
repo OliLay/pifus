@@ -49,6 +49,15 @@ bool pifus_socket_connect(struct pifus_socket *socket,
 bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size);
 
 /**
+ * @brief Receive from a socket.
+ *
+ * @param socket The socket that should be received on.
+ * @param size Size that should be read.
+ * @return true upon success, false upon error.
+ */
+bool pifus_socket_recv(struct pifus_socket *socket, size_t size);
+
+/**
  * @brief Dequeues the latest result received from the stack.
  *
  * @param socket The socket which the result should be related to.

@@ -23,7 +23,7 @@ void shm_data_delete_block(struct pifus_memory_block *block);
 struct pifus_memory_block *
 shm_data_get_next_block_ptr(struct pifus_app *app,
                             struct pifus_memory_block *block);
-int64_t shm_data_get_offset(struct pifus_app *app,
+block_offset_t shm_data_get_offset(struct pifus_app *app,
                             struct pifus_memory_block *block);
 bool shm_data_is_ptr_out_of_range(struct pifus_app *app, void *ptr);
 void print_memory(struct pifus_app *app);
@@ -152,7 +152,7 @@ struct pifus_memory_block *shm_data_next_suitable_block(
   }
 }
 
-bool shm_data_allocate(struct pifus_app *app, size_t size, int64_t *ptr_offset,
+bool shm_data_allocate(struct pifus_app *app, size_t size, block_offset_t *ptr_offset,
                        struct pifus_memory_block **block) {
   struct pifus_memory_block *start_block =
       (struct pifus_memory_block *)(app + 1);
@@ -192,7 +192,7 @@ bool shm_data_is_ptr_out_of_range(struct pifus_app *app, void *ptr) {
   return out_of_range;
 }
 
-int64_t shm_data_get_offset(struct pifus_app *app,
+block_offset_t shm_data_get_offset(struct pifus_app *app,
                             struct pifus_memory_block *block) {
   // TODO: why -8?
   return (uint8_t *)block - (uint8_t *)app + sizeof(struct pifus_app) - 8;
@@ -262,7 +262,7 @@ void shm_data_free(struct pifus_app *app, struct pifus_memory_block *block) {
 }
 
 struct pifus_memory_block *shm_data_get_block_ptr(struct pifus_app *app,
-                                                  int64_t block_offset) {
+                                                  block_offset_t block_offset) {
   return (struct pifus_memory_block *)((uint8_t *)app +
                                        sizeof(struct pifus_app) + block_offset);
 }

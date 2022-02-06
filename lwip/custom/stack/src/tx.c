@@ -236,6 +236,7 @@ void *tx_thread_loop(void *arg) {
       struct timespec timespec;
       clock_gettime(CLOCK_MONOTONIC, &timespec);
       timespec.tv_sec += TX_WAIT_TIMEOUT_SEC;
+      timespec.tv_nsec = 0;
 
       int ret_code =
           futex_waitv(waitvs, amount_futexes, 0, &timespec, CLOCK_MONOTONIC);

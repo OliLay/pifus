@@ -13,6 +13,10 @@ include(${LWIP_DIR}/contrib/ports/unix/Filelists.cmake)
 add_executable(stack 
                 ${CMAKE_CURRENT_LIST_DIR}/src/stack.c 
                 ${CMAKE_CURRENT_LIST_DIR}/src/tx.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/bind.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/connect.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/write.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/recv.c 
                 ${NEEDED_SOURCES})
 target_include_directories(stack PRIVATE ${LWIP_INCLUDE_DIRS})
 target_compile_options(stack PRIVATE ${LWIP_COMPILER_FLAGS})

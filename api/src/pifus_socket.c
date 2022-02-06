@@ -116,14 +116,13 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   }
 
   struct pifus_operation write_operation;
-
   if (socket->protocol == PROTOCOL_TCP) {
     write_operation.code = TCP_WRITE;
   } else {
     write_operation.code = UDP_SEND;
   }
 
-  int64_t block_offset;
+  block_offset_t block_offset;
   struct pifus_memory_block *block = NULL;
 
   if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
@@ -141,6 +140,32 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
 void free_write_buffers(struct pifus_app *app, uint64_t block_offset) {
   struct pifus_memory_block *block = shm_data_get_block_ptr(app, block_offset);
   shm_data_free(app, block);
+}
+
+bool pifus_socket_recv(struct pifus_socket *socket, size_t size) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
+
+  struct pifus_operation recv_operation;
+  if (socket->protocol == PROTOCOL_TCP) {
+    recv_operation.code = TCP_RECV;
+  } else {
+    recv_operation.code = UDP_RECV;
+  }
+
+  block_offset_t block_offset;
+  struct pifus_memory_block *block = NULL;
+
+  if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
+    pifus_log("pifus: Could not allocate memory for recv()!\n");
+    return false;
+  }
+
+  recv_operation.data.recv.recv_block_offset = block_offset;
+  recv_operation.data.recv.size = size;
+
+  return enqueue_operation(socket, recv_operation);
 }
 
 bool dequeue_operation(struct pifus_socket *socket,
