@@ -17,7 +17,10 @@ add_executable(stack
                 ${CMAKE_CURRENT_LIST_DIR}/src/connect.c 
                 ${CMAKE_CURRENT_LIST_DIR}/src/write.c 
                 ${CMAKE_CURRENT_LIST_DIR}/src/recv.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/listen.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/accept.c
                 ${NEEDED_SOURCES})
+
 target_include_directories(stack PRIVATE ${LWIP_INCLUDE_DIRS})
 target_compile_options(stack PRIVATE ${LWIP_COMPILER_FLAGS})
 target_compile_definitions(stack PRIVATE ${LWIP_DEFINITIONS} ${LWIP_MBEDTLS_DEFINITIONS})

@@ -15,7 +15,8 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
                   socket->identifier.app_index,
                   socket->identifier.socket_index);
 
-  if (err = ERR_OK) {
+  uint16_t len_data_available = 0;
+  if (err == ERR_OK) {
     if (p == NULL) {
       pifus_log("Connection closed for (%u/%u)! (tcp_recv_callback)\n",
                 socket->identifier.app_index, socket->identifier.socket_index);
@@ -23,7 +24,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
     }
     struct pifus_app *app = app_ptrs[socket->identifier.app_index];
 
-    uint16_t len_data_available = p->tot_len;
+    len_data_available = p->tot_len;
     struct pbuf *next_pbuf = p;
     uint16_t offset_inside_next_pbuf = 0;
     struct pifus_recv_queue_entry *recv_queue_entry;
@@ -81,6 +82,9 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
             recv_queue_entry->recv_block_offset;
         operation_result.data.recv.size = recv_queue_entry->size;
 
+        // to be set on client side
+        operation_result.data.recv.memory_block_ptr = NULL;
+
         pifus_recv_queue_erase_first(&socket->recv_queue);
         enqueue_in_cqueue(socket, &operation_result);
       } else {
@@ -88,23 +92,22 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
         recv_queue_entry->data_offset = len_data_available;
       }
     }
-
-    if (len_data_available > 0) {
-      pifus_log("pifus: no recv() call any more, but recv'd %u more bytes...\n",
-                len_data_available);
-      /* TODO: handle case, when no squeue entry is there any more, but we have
-       * data left here.
-       * 2 options:
-       *   - need to save it somehow here (copy), as pbuf chain is freed
-       * afterwards.
-       *   - free it. it will not be ACK'ed and therefore be retransmitted. (not
-       * a good option imho)
-       * */
-    }
-
   } else {
     pifus_log("pifus: err in tcp_recv_callback %i\n", err);
     // err
+  }
+
+  if (len_data_available > 0) {
+    pifus_log("pifus: no recv() call any more, but recv'd %u more bytes...\n",
+              len_data_available);
+    /* TODO: handle case, when no squeue entry is there any more, but we have
+     * data left here.
+     * 2 options:
+     *   - need to save it somehow here (copy), as pbuf chain is freed
+     * afterwards.
+     *   - free it. it will not be ACK'ed and therefore be retransmitted. (not
+     * a good option imho)
+     * */
   }
 
   pbuf_free(p);
@@ -125,7 +128,6 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
   recv_queue_entry.data_offset = 0;
 
   struct pifus_operation_result operation_result;
-
   if (pifus_recv_queue_put(&socket->recv_queue, socket->recv_queue_buffer,
                            recv_queue_entry)) {
     operation_result.result_code = PIFUS_ASYNC;

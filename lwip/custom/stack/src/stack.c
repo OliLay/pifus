@@ -26,6 +26,8 @@
 #include "stack.h"
 #include "tx.h"
 #include "write.h"
+#include "listen.h"
+#include "accept.h"
 
 /**
  * app_ptrs[#app] -> ptr to shmem app region
@@ -87,8 +89,10 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       // this has to happen in the main lwIP thread, as calling tcp_* funcs is
       // not safe in the TX thread
       internal_op->socket->pcb.tcp = tcp_new();
-      tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
     }
+
+    // TODO: check if we can check if callback is already set then we dont have to set it.
+    tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
 
     switch (internal_op->operation.code) {
     case TCP_BIND:
@@ -102,6 +106,12 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       break;
     case TCP_RECV:
       operation_result = tx_tcp_recv(internal_op);
+      break;
+    case TCP_LISTEN:
+      operation_result = tx_tcp_listen(internal_op);
+      break;
+    case TCP_ACCEPT:
+      operation_result = tx_tcp_accept(internal_op);
       break;
     default:
       pifus_log("pifus: TX op code %u is not known!\n",

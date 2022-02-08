@@ -21,6 +21,8 @@ bool enqueue_operation(struct pifus_socket *socket,
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result);
 void free_write_buffers(struct pifus_app *app, uint64_t block_offset);
+struct pifus_socket *pifus_socket_with_tcp_pcb(enum protocol protocol,
+                                               void *tcp_pcb);
 
 bool is_queue_full(struct pifus_socket *socket) {
   return pifus_operation_ring_buffer_is_full(&socket->squeue);
@@ -55,9 +57,20 @@ bool enqueue_operation(struct pifus_socket *socket,
 }
 
 struct pifus_socket *pifus_socket(enum protocol protocol) {
+  return pifus_socket_with_tcp_pcb(protocol, NULL);
+}
+
+struct pifus_socket *pifus_socket_with_tcp_pcb(enum protocol protocol,
+                                               void *tcp_pcb) {
   struct pifus_socket *socket = map_socket_region();
 
   socket->protocol = protocol;
+
+  if (tcp_pcb != NULL) {
+    pifus_debug_log("pifus: Created new socket with given PCB!\n");
+    socket->pcb.tcp = tcp_pcb;
+  }
+
   pifus_operation_ring_buffer_create(&socket->squeue, SQUEUE_SIZE);
 
   int retcode = futex_wake(&app_state->highest_socket_number);
@@ -168,6 +181,40 @@ bool pifus_socket_recv(struct pifus_socket *socket, size_t size) {
   return enqueue_operation(socket, recv_operation);
 }
 
+bool pifus_socket_listen(struct pifus_socket *socket, uint8_t backlog_size) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
+
+  struct pifus_operation listen_operation;
+  if (socket->protocol == PROTOCOL_TCP) {
+    listen_operation.code = TCP_LISTEN;
+  } else {
+    // UDP has no listen
+    return false;
+  }
+
+  listen_operation.data.listen.backlog_size = backlog_size;
+
+  return enqueue_operation(socket, listen_operation);
+}
+
+bool pifus_socket_accept(struct pifus_socket *socket) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
+
+  struct pifus_operation accept_operation;
+  if (socket->protocol == PROTOCOL_TCP) {
+    accept_operation.code = TCP_ACCEPT;
+  } else {
+    // UDP has no accept
+    return false;
+  }
+
+  return enqueue_operation(socket, accept_operation);
+}
+
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
 
@@ -178,6 +225,21 @@ bool dequeue_operation(struct pifus_socket *socket,
     if (operation_result->code == TCP_WRITE) {
       free_write_buffers(app_state, operation_result->data.write.block_offset);
     }
+
+    if (operation_result->code == TCP_ACCEPT &&
+        operation_result->result_code == PIFUS_OK) {
+      operation_result->data.accept.socket = pifus_socket_with_tcp_pcb(
+          PROTOCOL_TCP, operation_result->data.accept.pcb);
+    }
+
+    if (operation_result->code == TCP_RECV ||
+        operation_result->code == UDP_RECV) {
+      if (operation_result->result_code == PIFUS_OK) {
+        operation_result->data.recv.memory_block_ptr = shm_data_get_block_ptr(
+            app_state, operation_result->data.recv.recv_block_offset);
+      }
+    }
+
     pifus_debug_log("Dequeued from cqueue\n");
   }
 

@@ -58,6 +58,25 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size);
 bool pifus_socket_recv(struct pifus_socket *socket, size_t size);
 
 /**
+ * @brief Listen on a socket.
+ *
+ * @param socket The socket that should be listened on.
+ * @param backlog maximum length to which the queue of pending connections may
+ * grow
+ * @return true upon success, false upon error.
+ */
+bool pifus_socket_listen(struct pifus_socket *socket, uint8_t backlog_size);
+
+/**
+ * @brief Accept connection on a socket.
+ *
+ * @param socket The socket where a connection should be accepted on.
+ * grow
+ * @return true upon success, false upon error.
+ */
+bool pifus_socket_accept(struct pifus_socket *socket);
+
+/**
  * @brief Dequeues the latest result received from the stack.
  *
  * @param socket The socket which the result should be related to.

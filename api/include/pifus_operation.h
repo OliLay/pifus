@@ -56,6 +56,25 @@ struct pifus_write_data {
 struct pifus_recv_data {
   block_offset_t recv_block_offset;
   size_t size;
+  /* ptr only valid on client side */
+  void* memory_block_ptr;
+};
+
+/**
+ * Data needed for the listen operation.
+ */
+struct pifus_listen_data {
+  uint8_t backlog_size;
+};
+
+/**
+ * Data needed to return result of the accept operation.
+ */
+struct pifus_accept_data {
+  /* ptr only valid on client side */
+  struct pifus_socket* socket;
+  /* ptr only valid on stack side */
+  void* pcb;
 };
 
 struct pifus_write_queue_entry {
@@ -78,6 +97,7 @@ struct pifus_operation {
     struct pifus_connect_data connect;
     struct pifus_write_data write;
     struct pifus_recv_data recv;
+    struct pifus_listen_data listen;
   } data;
 };
 
@@ -110,6 +130,7 @@ struct pifus_operation_result {
   union {
     struct pifus_write_data write;
     struct pifus_recv_data recv;
+    struct pifus_accept_data accept;
   } data;
 };
 

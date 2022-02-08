@@ -55,7 +55,7 @@ void map_new_sockets(app_index_t app_index) {
       int fd = shm_open_region(shm_name, false);
 
       if (fd < 0) {
-        pifus_log("pifus_tx: failed to map '%s' with errno %i\n", shm_name,
+        pifus_log("pifus_tx: failed to map '%s' with errno %i!\n", shm_name,
                   errno);
       } else {
         struct pifus_socket *socket =
@@ -67,10 +67,13 @@ void map_new_sockets(app_index_t app_index) {
 
         pifus_operation_result_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
         pifus_write_queue_create(&socket->write_queue, WRITE_QUEUE_SIZE);
+        pifus_recv_queue_create(&socket->recv_queue, RECV_QUEUE_SIZE);
       }
 
       pifus_log("pifus_tx: Mapped socket %u for app %u\n", socket_index,
                 app_index);
+                
+      app_local_highest_socket_number[app_index] = socket_index;
       free(shm_name);
     }
   }
@@ -146,7 +149,8 @@ void handle_squeue_change(struct pifus_socket *socket) {
         // refresh shadow variable of futex
         socket_futexes[app_index][socket_index]++;
       } else {
-        pifus_debug_log("pifus_tx: Could not put() into tx_queue. Is it full?\n");
+        pifus_debug_log(
+            "pifus_tx: Could not put() into tx_queue. Is it full?\n");
         return;
       }
     } else {
