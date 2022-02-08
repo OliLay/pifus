@@ -66,6 +66,8 @@ struct pifus_write_queue_entry {
 struct pifus_recv_queue_entry {
   size_t size;
   uint64_t recv_block_offset;
+  /* used when recv operation could partly be filled */
+  uint64_t data_offset;
 };
 
 struct pifus_operation {
