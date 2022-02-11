@@ -32,7 +32,7 @@ void writer_send_now(void *arg)
     err_t result;
 
     const char *data = "Group42 ist fast coronafrei!";
-    result = tcp_write(pcb, data, strlen(data) + 1, 0);
+    result = tcp_write(pcb, data, strlen(data), 0);
 
     if (result == ERR_OK)
     {

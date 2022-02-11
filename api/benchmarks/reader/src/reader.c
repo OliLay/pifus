@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
   struct pifus_socket *accepted_socket = operation_result.data.accept.socket;
 
   while (true) {
-    if (pifus_socket_recv(accepted_socket, 15)) {
+    if (pifus_socket_recv(accepted_socket, 27)) {
       pifus_socket_wait(accepted_socket, &operation_result);
       print_result(&operation_result);
 

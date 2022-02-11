@@ -10,7 +10,7 @@
 
 /* Socket shmem */
 #define SHM_SOCKET_NAME_PREFIX "-socket"
-#define SHM_SOCKET_RECV_BUFFER 1024
+#define SHM_SOCKET_RECV_BUFFER 64
 #define SHM_SOCKET_SIZE sizeof(struct pifus_socket)
 
 /* general shmem */

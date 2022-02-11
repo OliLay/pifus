@@ -71,8 +71,6 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
       }
 
       bool recv_op_fulfilled = true;
-      printf("Need further %u bytes for the buffer, %u bytes available!\n",
-             len_needed_recv, len_data_available);
       if (len_needed_recv > len_data_available) {
         recv_op_fulfilled = false;
       }
@@ -90,18 +88,13 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
           amount_to_copy = len_next_pbuf;
         }
 
-        // copy into shared memory
-        memcpy((uint8_t *)shm_data_get_data_ptr(recv_block) +
-                   recv_queue_entry->data_offset,
-               next_pbuf->payload + offset_inside_next_pbuf, amount_to_copy);
+        uint8_t *data_ptr = (uint8_t *)shm_data_get_data_ptr(recv_block) +
+                            recv_queue_entry->data_offset;
 
-        // TODO: doesn't copy that 1 byte for some reason...
-        if (amount_to_copy == 1) {
-              printf("Copied %u bytes into entry with offset %lu and size %u\n",
-               amount_to_copy, recv_queue_entry->data_offset,
+        // copy into shared memory
+        memcpy(data_ptr, next_pbuf->payload + offset_inside_next_pbuf,
                amount_to_copy);
-        }
-      
+
         len_data_available -= amount_to_copy;
         len_needed_recv -= amount_to_copy;
         total_data_ackable += amount_to_copy;
@@ -120,7 +113,6 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
       }
 
       if (recv_op_fulfilled) {
-        printf("op fulfilled through normal loop!\n");
         struct pifus_operation_result operation_result;
         operation_result.code = TCP_RECV;
         operation_result.result_code = PIFUS_OK;
@@ -197,7 +189,6 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
 
     if (len_bytes_from_recv_buffer > 0 &&
         recv_queue_entry.size == len_bytes_from_recv_buffer) {
-      printf("op fulfilled through pre checking!\n");
 
       // filled completely from buffer, can directly return
       operation_result.code = TCP_RECV;
