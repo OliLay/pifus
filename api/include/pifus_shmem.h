@@ -8,6 +8,7 @@
 #include "pifus_identifiers.h"
 #include "pifus_operation.h"
 #include "pifus_ring_buffer.h"
+#include "pifus_byte_buffer.h"
 #include "utils/futex.h"
 
 enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
@@ -28,6 +29,10 @@ struct pifus_socket {
   futex_t cqueue_futex;
   struct pifus_operation_result_ring_buffer cqueue;
   struct pifus_operation_result cqueue_buffer[CQUEUE_SIZE];
+
+  /* recv buffer */
+  struct pifus_byte_buffer recv_buffer;
+  uint8_t recv_buffer_array[RECV_QUEUE_SIZE];
 
   /* async operations lookup */
   struct pifus_write_queue write_queue;

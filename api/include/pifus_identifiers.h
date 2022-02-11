@@ -7,6 +7,7 @@ typedef uint32_t app_index_t;
 typedef uint32_t socket_index_t;
 
 typedef int64_t block_offset_t;
+typedef block_offset_t shmem_offset_t;
 
 /** Uniquely identifies a socket. */
 struct pifus_socket_identifier {

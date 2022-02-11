@@ -41,8 +41,7 @@ int main(int argc, char *argv[]) {
   struct pifus_socket *accepted_socket = operation_result.data.accept.socket;
 
   while (true) {
-    // TODO: make it work for larger buffer sizes! Doesn't happen anything then :(
-    if (pifus_socket_recv(accepted_socket, 29)) {
+    if (pifus_socket_recv(accepted_socket, 15)) {
       pifus_socket_wait(accepted_socket, &operation_result);
       print_result(&operation_result);
 
@@ -53,6 +52,7 @@ int main(int argc, char *argv[]) {
         char* data = shm_data_get_data_ptr(block);
 
         fwrite(data, sizeof(char), block->size, stdout);
+        printf("\n");
 
         shm_data_free(app_state, block);
       }
