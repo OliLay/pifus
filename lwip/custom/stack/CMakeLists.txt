@@ -19,6 +19,7 @@ add_executable(stack
                 ${CMAKE_CURRENT_LIST_DIR}/src/recv.c 
                 ${CMAKE_CURRENT_LIST_DIR}/src/listen.c
                 ${CMAKE_CURRENT_LIST_DIR}/src/accept.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/close.c
                 ${NEEDED_SOURCES})
 
 target_include_directories(stack PRIVATE ${LWIP_INCLUDE_DIRS})

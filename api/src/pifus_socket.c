@@ -23,6 +23,7 @@ bool dequeue_operation(struct pifus_socket *socket,
 void free_write_buffers(struct pifus_app *app, uint64_t block_offset);
 struct pifus_socket *pifus_socket_with_tcp_pcb(enum protocol protocol,
                                                void *tcp_pcb);
+void unlink_socket(struct pifus_socket *socket);
 
 bool is_queue_full(struct pifus_socket *socket) {
   return pifus_operation_ring_buffer_is_full(&socket->squeue);
@@ -215,6 +216,21 @@ bool pifus_socket_accept(struct pifus_socket *socket) {
   return enqueue_operation(socket, accept_operation);
 }
 
+bool pifus_socket_close(struct pifus_socket *socket) {
+  if (is_queue_full(socket)) {
+    return false;
+  }
+
+  struct pifus_operation close_operation;
+  if (socket->protocol == PROTOCOL_TCP) {
+    close_operation.code = TCP_CLOSE;
+  } else {
+    close_operation.code = UDP_DISCONNECT;
+  }
+
+  return enqueue_operation(socket, close_operation);
+}
+
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
 
@@ -238,6 +254,11 @@ bool dequeue_operation(struct pifus_socket *socket,
         operation_result->data.recv.memory_block_ptr = shm_data_get_block_ptr(
             app_state, operation_result->data.recv.recv_block_offset);
       }
+    }
+
+    if (operation_result->code == TCP_CLOSE ||
+        operation_result->code == UDP_DISCONNECT) {
+      unlink_socket(socket);
     }
 
     pifus_debug_log("Dequeued from cqueue\n");
@@ -268,6 +289,17 @@ void pifus_socket_wait(struct pifus_socket *socket,
       return;
     }
   }
+}
+
+void unlink_socket(struct pifus_socket *socket) {
+  char *socket_shm_name;
+  if (asprintf(&socket_shm_name, "%s%s%u", app_shm_name, SHM_SOCKET_NAME_PREFIX,
+               socket->identifier.socket_index) < 0) {
+    pifus_log("pifus: error when calling asprintf\n");
+    return;
+  }
+  shm_unlink_region(socket_shm_name);
+  free(socket_shm_name);
 }
 
 void pifus_socket_exit_all(void) {

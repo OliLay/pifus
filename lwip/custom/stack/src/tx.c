@@ -71,9 +71,8 @@ void map_new_sockets(app_index_t app_index) {
         pifus_byte_buffer_create(&socket->recv_buffer, SHM_SOCKET_RECV_BUFFER);
       }
 
-      pifus_log("pifus_tx: Mapped socket %u for app %u\n", socket_index,
-                app_index);
-                
+      pifus_log("pifus_tx: Mapped (%u/%u)\n", app_index, socket_index);
+
       app_local_highest_socket_number[app_index] = socket_index;
       free(shm_name);
     }

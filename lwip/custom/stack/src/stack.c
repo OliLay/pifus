@@ -28,6 +28,7 @@
 #include "write.h"
 #include "listen.h"
 #include "accept.h"
+#include "close.h"
 
 /**
  * app_ptrs[#app] -> ptr to shmem app region
@@ -112,6 +113,9 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       break;
     case TCP_ACCEPT:
       operation_result = tx_tcp_accept(internal_op);
+      break;
+    case TCP_CLOSE:
+      operation_result = tx_tcp_close(internal_op);
       break;
     default:
       pifus_log("pifus: TX op code %u is not known!\n",

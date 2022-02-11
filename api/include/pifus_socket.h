@@ -77,6 +77,16 @@ bool pifus_socket_listen(struct pifus_socket *socket, uint8_t backlog_size);
 bool pifus_socket_accept(struct pifus_socket *socket);
 
 /**
+ * @brief Close a socket. 
+ * NOTE: after this is returned successfully (in cqueue), 
+ * no further operations can be issued on the socket.
+ *
+ * @param socket The socket that should be closed.
+ * @return true upon success, false upon error.
+ */
+bool pifus_socket_close(struct pifus_socket *socket);
+
+/**
  * @brief Dequeues the latest result received from the stack.
  *
  * @param socket The socket which the result should be related to.

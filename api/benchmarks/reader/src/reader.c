@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
 
   pifus_initialize();
 
+  struct pifus_socket *to_be_closed_socket = pifus_socket(PROTOCOL_TCP);
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
 
   pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 11337);
@@ -39,6 +40,9 @@ int main(int argc, char *argv[]) {
   print_result(&operation_result);
 
   struct pifus_socket *accepted_socket = operation_result.data.accept.socket;
+
+  pifus_socket_close(to_be_closed_socket);
+  pifus_socket_wait(to_be_closed_socket, &operation_result);
 
   while (true) {
     if (pifus_socket_recv(accepted_socket, 27)) {
