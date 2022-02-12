@@ -4,11 +4,11 @@
 #include "stddef.h"
 #include "stdint.h"
 
+#include "pifus_byte_buffer.h"
 #include "pifus_constants.h"
 #include "pifus_identifiers.h"
 #include "pifus_operation.h"
 #include "pifus_ring_buffer.h"
-#include "pifus_byte_buffer.h"
 #include "utils/futex.h"
 
 enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
@@ -30,15 +30,15 @@ struct pifus_socket {
   struct pifus_operation_result_ring_buffer cqueue;
   struct pifus_operation_result cqueue_buffer[CQUEUE_SIZE];
 
-  /* recv buffer */
-  struct pifus_byte_buffer recv_buffer;
-  uint8_t recv_buffer_array[RECV_QUEUE_SIZE];
-
   /* async operations lookup */
   struct pifus_write_queue write_queue;
   struct pifus_write_queue_entry write_queue_buffer[WRITE_QUEUE_SIZE];
   struct pifus_recv_queue recv_queue;
   struct pifus_recv_queue_entry recv_queue_buffer[RECV_QUEUE_SIZE];
+
+  /* recv buffer */
+  struct pifus_byte_buffer recv_buffer;
+  uint8_t recv_buffer_array[RECV_BUFFER_SIZE];
 
   /* ATTENTION: pointers below this note are only valid for stack side */
   /* internal lwIP mappings */

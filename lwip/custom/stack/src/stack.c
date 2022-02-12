@@ -187,10 +187,7 @@ int main(int argc, char *argv[]) {
 
   pifus_log("pifus: Starting up...\n");
 
-  ip_addr_t *stack_addr = (ip_addr_t *)malloc(sizeof(ip_addr_t));
-  ipaddr_aton("192.168.1.201", stack_addr);
-
-  run_lwip(&lwip_init_complete, &lwip_loop_iteration, "192.168.1.200",
+  run_lwip(&lwip_init_complete, &lwip_loop_iteration, "192.168.1.201",
            "192.168.1.1", "255.255.255.0");
 
   return 0;

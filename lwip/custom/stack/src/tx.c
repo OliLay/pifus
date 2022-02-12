@@ -68,7 +68,7 @@ void map_new_sockets(app_index_t app_index) {
         pifus_operation_result_ring_buffer_create(&socket->cqueue, CQUEUE_SIZE);
         pifus_write_queue_create(&socket->write_queue, WRITE_QUEUE_SIZE);
         pifus_recv_queue_create(&socket->recv_queue, RECV_QUEUE_SIZE);
-        pifus_byte_buffer_create(&socket->recv_buffer, SHM_SOCKET_RECV_BUFFER);
+        pifus_byte_buffer_create(&socket->recv_buffer, RECV_BUFFER_SIZE);
       }
 
       pifus_log("pifus_tx: Mapped (%u/%u)\n", app_index, socket_index);

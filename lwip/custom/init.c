@@ -62,6 +62,7 @@ static void loop(void) {
   while (true) {
     sys_check_timeouts();
 
+    netif_poll_all();
     default_netif_poll();
 
     if (loop_callback != NULL) {

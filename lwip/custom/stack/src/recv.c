@@ -65,9 +65,9 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
 
         if (len_bytes_from_recv_buffer > 0) {
           len_needed_recv -= len_bytes_from_recv_buffer;
+        } else {
+          recv_buffer_empty = true;
         }
-      } else {
-        recv_buffer_empty = true;
       }
 
       bool recv_op_fulfilled = true;

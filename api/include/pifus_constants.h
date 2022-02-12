@@ -10,7 +10,6 @@
 
 /* Socket shmem */
 #define SHM_SOCKET_NAME_PREFIX "-socket"
-#define SHM_SOCKET_RECV_BUFFER 64
 #define SHM_SOCKET_SIZE sizeof(struct pifus_socket)
 
 /* general shmem */
@@ -25,6 +24,7 @@
 #define CQUEUE_SIZE 10
 #define WRITE_QUEUE_SIZE 100
 #define RECV_QUEUE_SIZE 100
+#define RECV_BUFFER_SIZE 1024
 
 /* stack */
 #define MAX_DEQUEUES_PER_ITERATION 32
