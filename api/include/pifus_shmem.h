@@ -36,6 +36,9 @@ struct pifus_socket {
   struct pifus_recv_queue recv_queue;
   struct pifus_recv_queue_entry recv_queue_buffer[RECV_QUEUE_SIZE];
 
+  /* recv */
+  uint16_t unread_data_offset;
+
   /* recv buffer */
   struct pifus_byte_buffer recv_buffer;
   uint8_t recv_buffer_array[RECV_BUFFER_SIZE];

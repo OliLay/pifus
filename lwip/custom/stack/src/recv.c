@@ -42,10 +42,18 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
       return ERR_OK;
     }
     struct pifus_app *app = app_ptrs[socket->identifier.app_index];
-
-    len_data_available = p->tot_len;
-    struct pbuf *next_pbuf = p;
+    struct pbuf *next_pbuf = NULL;
     uint16_t offset_inside_next_pbuf = 0;
+
+    if (socket->unread_data_offset > 0) {
+      len_data_available = p->tot_len - socket->unread_data_offset;
+      next_pbuf =
+          pbuf_skip(p, socket->unread_data_offset, &offset_inside_next_pbuf);
+    } else {
+      len_data_available = p->tot_len;
+      next_pbuf = p;
+    }
+
     struct pifus_recv_queue_entry *recv_queue_entry;
     uint16_t total_data_ackable = 0;
 
@@ -106,19 +114,18 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
           offset_inside_next_pbuf += amount_to_copy;
         }
 
-        if (!recv_op_fulfilled) {
-          recv_queue_entry->size -= amount_to_copy;
-          recv_queue_entry->data_offset += amount_to_copy;
-        }
+        recv_queue_entry->size -= amount_to_copy;
+        recv_queue_entry->data_offset += amount_to_copy;
       }
 
       if (recv_op_fulfilled) {
         struct pifus_operation_result operation_result;
         operation_result.code = TCP_RECV;
         operation_result.result_code = PIFUS_OK;
-        operation_result.data.recv.recv_block_offset =
-            recv_queue_entry->recv_block_offset;
-        operation_result.data.recv.size = recv_queue_entry->size;
+
+        // irrelevant for client side
+        operation_result.data.recv.recv_block_offset = 0;
+        operation_result.data.recv.size = 0;
 
         // to be set on client side
         operation_result.data.recv.memory_block_ptr = NULL;
@@ -128,7 +135,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
       }
     }
 
-    if (len_data_available > 0) {
+    if (false) {
       pifus_debug_log(
           "pifus: no recv() call any more, but recv'd %u more bytes. "
           "Buffering!\n",
@@ -162,8 +169,14 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
     // err
   }
 
-  pbuf_free(p);
-  return ERR_OK;
+  if (len_data_available > 0) {
+    socket->unread_data_offset = p->tot_len - len_data_available;
+    return ERR_MEM;
+  } else {
+    socket->unread_data_offset = 0;
+    pbuf_free(p);
+    return ERR_OK;
+  }
 }
 
 struct pifus_operation_result
