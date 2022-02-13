@@ -32,7 +32,7 @@ void writer_send_now(void *arg) {
   err_t result;
 
   char *loop_data;
-  asprintf(&loop_data, "Group42 ist fast coronafrei!#%i", current_number);
+  asprintf(&loop_data, "Predictable interface for a user space IP stack!#%i", current_number);
   result = tcp_write(pcb, loop_data, strlen(loop_data), 0);
 
   if (result == ERR_OK) {

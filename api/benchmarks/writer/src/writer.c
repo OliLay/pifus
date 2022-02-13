@@ -2,9 +2,9 @@
 
 /* standard includes */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdlib.h>
 
 /* local includes */
 #include "pifus.h"
@@ -39,32 +39,25 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  char *data = "Sepp ist ein großartiges Katzenwesen.\n";
-  pifus_socket_write(socket, data, strlen(data));
-  pifus_socket_wait(socket, &operation_result);
-  print_result(&operation_result);
-
-  sleep(1);
-
-  int i = 1;
   while (true) {
-    char *loop_data;
-    asprintf(&loop_data, "%s%i%s", "Sepp ist ein großartiges Katzenwesen. #", i,
-             "\n");
+    int sent = 0;
+    while (sent < 10) {
+      char *loop_data;
+      asprintf(&loop_data,
+               "Predictable interface for a user space IP stack!#%i", sent);
 
-    while (pifus_socket_get_latest_result(socket, &operation_result)) {
-      print_result(&operation_result);
-    }
-
-    if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
-      i++;
-    } else {
-      while (pifus_socket_get_latest_result(socket, &operation_result)) {
-        print_result(&operation_result);
+      if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
+        printf("Wrote '%s'\n", loop_data);
+        sent++;
+        free(loop_data);
       }
     }
 
-    free(loop_data);
+    while (sent > 1) {
+      if (pifus_socket_get_latest_result(socket, &operation_result)) {
+        sent--;
+      }
+    }
 
     // if (!pifus_socket_write(socket, loop_data, strlen(loop_data))) {
     //   pifus_socket_wait(socket, &operation_result);

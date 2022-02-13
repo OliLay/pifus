@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(to_be_closed_socket, &operation_result);
 
   while (true) {
-    if (pifus_socket_recv(accepted_socket, 27)) {
+    if (pifus_socket_recv(accepted_socket, 50)) {
       pifus_socket_wait(accepted_socket, &operation_result);
       print_result(&operation_result);
 

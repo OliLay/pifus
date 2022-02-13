@@ -13,13 +13,13 @@ uint16_t pop_from_buffer(struct pifus_socket *socket,
                          struct pifus_memory_block *recv_block,
                          struct pifus_recv_queue_entry *recv_queue_entry,
                          uint16_t len_needed_recv) {
-  uint16_t len_bytes_from_recv_buffer = pifus_byte_buffer_pop(
-      &socket->recv_buffer, socket->recv_buffer_array, len_needed_recv,
-      (uint8_t *)shm_data_get_data_ptr(recv_block) +
-          recv_queue_entry->data_offset);
+  uint8_t *data_ptr = (uint8_t *)shm_data_get_data_ptr(recv_block) +
+                      recv_queue_entry->data_offset;
+  uint16_t len_bytes_from_recv_buffer =
+      pifus_byte_buffer_pop(&socket->recv_buffer, socket->recv_buffer_array,
+                            len_needed_recv, data_ptr);
 
-  if (len_bytes_from_recv_buffer > 0 &&
-      recv_queue_entry->size > len_bytes_from_recv_buffer) {
+  if (len_bytes_from_recv_buffer > 0) {
     recv_queue_entry->size -= len_bytes_from_recv_buffer;
     recv_queue_entry->data_offset += len_bytes_from_recv_buffer;
   }
@@ -59,6 +59,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
 
     bool recv_buffer_empty = pifus_byte_buffer_is_empty(&socket->recv_buffer);
 
+    // recv data from lwip & buffer and match with items in queue
     while (pifus_recv_queue_peek(&socket->recv_queue, socket->recv_queue_buffer,
                                  &recv_queue_entry) &&
            (len_data_available > 0 || !recv_buffer_empty)) {
@@ -67,6 +68,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
           shm_data_get_block_ptr(app, recv_queue_entry->recv_block_offset);
       uint16_t len_needed_recv = recv_queue_entry->size;
 
+      // first check if we have something in the buffer.
       if (!recv_buffer_empty) {
         uint16_t len_bytes_from_recv_buffer = pop_from_buffer(
             socket, recv_block, recv_queue_entry, len_needed_recv);
@@ -83,6 +85,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
         recv_op_fulfilled = false;
       }
 
+      // buffer was checked, now check what lwIP has for us
       while (next_pbuf != NULL && len_needed_recv > 0) {
         uint16_t amount_to_copy;
         uint16_t len_next_pbuf = next_pbuf->len - offset_inside_next_pbuf;
@@ -123,10 +126,10 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
         operation_result.code = TCP_RECV;
         operation_result.result_code = PIFUS_OK;
 
+        operation_result.data.recv.recv_block_offset =
+            recv_queue_entry->recv_block_offset;
         // irrelevant for client side
-        operation_result.data.recv.recv_block_offset = 0;
         operation_result.data.recv.size = 0;
-
         // to be set on client side
         operation_result.data.recv.memory_block_ptr = NULL;
 
@@ -135,7 +138,8 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
       }
     }
 
-    if (false) {
+    // fill the buffer if additional data is there
+    if (len_data_available > 0) {
       pifus_debug_log(
           "pifus: no recv() call any more, but recv'd %u more bytes. "
           "Buffering!\n",
@@ -157,6 +161,9 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
                     "data. (%u bytes)\n",
                     len_data_available);
           break;
+        } else {
+          // reset the offset
+          offset_inside_next_pbuf = 0;
         }
 
         next_pbuf = next_pbuf->next;
@@ -166,7 +173,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
     tcp_recved(tpcb, total_data_ackable);
   } else {
     pifus_log("pifus: err in tcp_recv_callback %i\n", err);
-    // err
+    // TODO: handle somehow?
   }
 
   if (len_data_available > 0) {
@@ -185,6 +192,8 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
   struct pifus_socket *socket = internal_op->socket;
   struct tcp_pcb *pcb = socket->pcb.tcp;
 
+  tcp_recv(pcb, &tcp_recv_callback);
+
   struct pifus_recv_queue_entry recv_queue_entry;
   recv_queue_entry.size = recv_data->size;
   recv_queue_entry.recv_block_offset = recv_data->recv_block_offset;
@@ -201,16 +210,18 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
         socket, recv_block, &recv_queue_entry, recv_queue_entry.size);
 
     if (len_bytes_from_recv_buffer > 0 &&
-        recv_queue_entry.size == len_bytes_from_recv_buffer) {
+        recv_data->size == len_bytes_from_recv_buffer) {
 
       // filled completely from buffer, can directly return
       operation_result.code = TCP_RECV;
       operation_result.result_code = PIFUS_OK;
       operation_result.data.recv.recv_block_offset =
           recv_queue_entry.recv_block_offset;
-      operation_result.data.recv.size = recv_queue_entry.size;
+      // irrelevant for client side
+      operation_result.data.recv.size = 0;
       // to be set on client side
       operation_result.data.recv.memory_block_ptr = NULL;
+
       return operation_result;
     }
   }
@@ -226,8 +237,6 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
   }
 
   operation_result.data.recv = internal_op->operation.data.recv;
-
-  tcp_recv(pcb, &tcp_recv_callback);
 
   return operation_result;
 }

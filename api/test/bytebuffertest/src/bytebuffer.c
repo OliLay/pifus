@@ -13,12 +13,12 @@
 int main(int argc, char *argv[]) {
   struct pifus_byte_buffer byte_buffer;
 
-  pifus_byte_buffer_create(&byte_buffer, 8);
+  pifus_byte_buffer_create(&byte_buffer, 9);
 
-  char buffer[8];
+  char buffer[9] = {};
 
-  char* to_add_buf = "1234567";
-  pifus_byte_buffer_add(&byte_buffer, buffer, to_add_buf, 7);
+  char* to_add_buf = "12345678";
+  pifus_byte_buffer_add(&byte_buffer, buffer, to_add_buf, 8);
 
   char retrv[8];
   uint16_t retrv_len = pifus_byte_buffer_pop(&byte_buffer, buffer, 8, retrv);
@@ -38,18 +38,19 @@ int main(int argc, char *argv[]) {
   printf("\n");
 
 
-  to_add_buf = "123";
-  pifus_byte_buffer_add(&byte_buffer, buffer, to_add_buf, 3);
+  to_add_buf = "12";
+  pifus_byte_buffer_add(&byte_buffer, buffer, to_add_buf, 2);
   
-  retrv_len = pifus_byte_buffer_pop(&byte_buffer, buffer, 3, retrv);
+  retrv_len = pifus_byte_buffer_pop(&byte_buffer, buffer, 2, retrv);
   printf("3:");
   fwrite(retrv, sizeof(char), retrv_len, stdout);
   printf("\n");
 
-  to_add_buf = "1234567";
-  pifus_byte_buffer_add(&byte_buffer, buffer, to_add_buf, 7);
+  to_add_buf = "123456789";
+  pifus_byte_buffer_add(&byte_buffer, buffer, to_add_buf, 9);
   
-  retrv_len = pifus_byte_buffer_pop(&byte_buffer, buffer, 7, retrv);
+  memset(retrv, 0x0, 8);
+  retrv_len = pifus_byte_buffer_pop(&byte_buffer, buffer, 9, retrv);
   printf("4:");
   fwrite(retrv, sizeof(char), retrv_len, stdout);
   printf("\n");
