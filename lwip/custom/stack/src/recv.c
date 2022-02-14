@@ -211,7 +211,6 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
 
     if (len_bytes_from_recv_buffer > 0 &&
         recv_data->size == len_bytes_from_recv_buffer) {
-
       // filled completely from buffer, can directly return
       operation_result.code = TCP_RECV;
       operation_result.result_code = PIFUS_OK;

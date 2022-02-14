@@ -124,10 +124,6 @@ void handle_new_sockets(app_index_t app_index) {
  * squeue.
  */
 void handle_squeue_change(struct pifus_socket *socket) {
-  pifus_debug_log(
-      "pifus_tx: new operation in squeue from socket %u in app %u\n",
-      socket->identifier.socket_index, socket->identifier.app_index);
-
   app_index_t app_index = socket->identifier.app_index;
   socket_index_t socket_index = socket->identifier.socket_index;
 
@@ -145,20 +141,18 @@ void handle_squeue_change(struct pifus_socket *socket) {
       if (pifus_tx_ring_buffer_put(&tx_queue.ring_buffer,
                                    tx_queue.tx_queue_buffer, internal_op)) {
         pifus_operation_ring_buffer_erase_first(&socket->squeue);
+        shadow_actual_difference--;
 
         // refresh shadow variable of futex
         socket_futexes[app_index][socket_index]++;
       } else {
-        pifus_debug_log(
-            "pifus_tx: Could not put() into tx_queue. Is it full?\n");
+        pifus_log("pifus_tx: Could not put() into tx_queue. Is it full?\n");
         return;
       }
     } else {
       pifus_debug_log("pifus_tx: Could not get() from squeue.\n");
       return;
     }
-
-    shadow_actual_difference--;
   }
 }
 

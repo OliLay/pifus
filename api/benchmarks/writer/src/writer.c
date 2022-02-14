@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    while (sent > 1) {
+    while (sent > 0) {
       if (pifus_socket_get_latest_result(socket, &operation_result)) {
         sent--;
       }

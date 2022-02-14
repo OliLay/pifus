@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
   pifus_socket_close(to_be_closed_socket);
   pifus_socket_wait(to_be_closed_socket, &operation_result);
 
+  int current_expected_number = 0;
   while (true) {
     if (pifus_socket_recv(accepted_socket, 50)) {
       pifus_socket_wait(accepted_socket, &operation_result);
@@ -53,12 +54,27 @@ int main(int argc, char *argv[]) {
       if (operation_result.result_code == PIFUS_OK) {
         struct pifus_memory_block *block =
             operation_result.data.recv.memory_block_ptr;
-        char* data = shm_data_get_data_ptr(block);
+        char *data = shm_data_get_data_ptr(block);
+        char number = data[block->size - 1] - '0';
 
         fwrite(data, sizeof(char), block->size, stdout);
         printf("\n");
 
+        if (number != current_expected_number) {
+          printf("ERROR: Expected %i but got %i instead!\n", current_expected_number,
+                 number);
+
+          current_expected_number = number;
+          exit(1);
+        }
+
         shm_data_free(app_state, block);
+
+        if (current_expected_number < 9) {
+          current_expected_number++;
+        } else {
+          current_expected_number = 0;
+        }
       }
     }
   }

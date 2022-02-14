@@ -19,16 +19,16 @@
 #include "utils/log.h"
 
 /* local includes */
+#include "accept.h"
 #include "bind.h"
+#include "close.h"
 #include "connect.h"
 #include "init.h"
+#include "listen.h"
 #include "recv.h"
 #include "stack.h"
 #include "tx.h"
 #include "write.h"
-#include "listen.h"
-#include "accept.h"
-#include "close.h"
 
 /**
  * app_ptrs[#app] -> ptr to shmem app region
@@ -92,7 +92,8 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       internal_op->socket->pcb.tcp = tcp_new();
     }
 
-    // TODO: check if we can check if callback is already set then we dont have to set it.
+    // TODO: check if we can check if callback is already set then we dont have
+    // to set it.
     tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
 
     switch (internal_op->operation.code) {
@@ -136,10 +137,9 @@ void lwip_loop_iteration(void) {
   uint8_t dequeued_operations = 0;
 
   struct pifus_internal_operation *tx_op;
-  /** TODO: currently, a full SNDBUF holds up everything.
-    solution: independent WRITE_QUEUE? **/
-  while (!send_buffer_full &&
-         dequeued_operations < MAX_DEQUEUES_PER_ITERATION &&
+  /** TODO: currently, a full SNDBUF holds up everything. (can lead to deadlock)
+    maybe: control queue, recv queue, write queue. */
+  while (dequeued_operations < MAX_DEQUEUES_PER_ITERATION &&
          pifus_tx_ring_buffer_peek(&tx_queue.ring_buffer,
                                    tx_queue.tx_queue_buffer, &tx_op)) {
     const app_index_t app_index = tx_op->socket->identifier.app_index;
@@ -152,10 +152,10 @@ void lwip_loop_iteration(void) {
     struct pifus_operation_result operation_result = process_tx_op(tx_op);
 
     if (operation_result.result_code == PIFUS_TRY_AGAIN) {
-      pifus_debug_log("pifus: Not dequeing op, trying again later. (probably "
+      pifus_log("pifus: Not dequeing op, trying again later. (probably "
                       "SNDBUFFER full)\n",
                       app_index, socket_index);
-      continue;
+      return;
     }
 
     if (operation_result.result_code == PIFUS_ASYNC) {
@@ -164,7 +164,6 @@ void lwip_loop_iteration(void) {
                       app_index, socket_index);
     } else {
       enqueue_in_cqueue(tx_op->socket, &operation_result);
-      pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
     }
 
     pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
