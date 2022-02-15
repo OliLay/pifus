@@ -69,11 +69,26 @@ void map_new_sockets(app_index_t app_index) {
         pifus_write_queue_create(&socket->write_queue, WRITE_QUEUE_SIZE);
         pifus_recv_queue_create(&socket->recv_queue, RECV_QUEUE_SIZE);
         pifus_byte_buffer_create(&socket->recv_buffer, RECV_BUFFER_SIZE);
+
+        pifus_log("pifus_tx: Mapped (%u/%u)\n", app_index, socket_index);
+
+        if (socket->protocol == PROTOCOL_TCP) {
+          if (socket->pcb.tcp != NULL) {
+            /** this has to be done if we have a listening socket, so that
+             * tcp_arg is set even though no operation has been queued from
+             * that socket yet but we can still receive data.
+             * NOTE: theoretically, this is not save (due to not being called
+             * from the stack thread), but tcp_arg only sets a single variable,
+             * which can not be set at the same time from the main thread.) */
+            tcp_arg(socket->pcb.tcp, socket);
+            pifus_log("pifus_tx: (out of order) set arg for socket (%u/%u)\n",
+                      app_index, socket_index);
+          }
+        }
+
+        app_local_highest_socket_number[app_index] = socket_index;
       }
 
-      pifus_log("pifus_tx: Mapped (%u/%u)\n", app_index, socket_index);
-
-      app_local_highest_socket_number[app_index] = socket_index;
       free(shm_name);
     }
   }
@@ -117,6 +132,11 @@ void handle_new_sockets(app_index_t app_index) {
   map_new_sockets(app_index);
 }
 
+bool has_socket_max_parallel_ops(struct pifus_socket *socket) {
+  return (socket->enqueued_ops - socket->dequeued_ops >=
+          TX_MAX_PARALLEL_OPS_PER_SOCKET);
+}
+
 /**
  * @brief Handles event of a 'put' in the squeue of a particular socket.
  *
@@ -131,7 +151,7 @@ void handle_squeue_change(struct pifus_socket *socket) {
   // get diff so we know how much has been inserted into the squeue
   size_t shadow_actual_difference = socket->squeue_futex - old_shadow_value;
 
-  while (shadow_actual_difference > 0) {
+  while (shadow_actual_difference > 0 && !has_socket_max_parallel_ops(socket)) {
     struct pifus_operation *op;
     if (pifus_operation_ring_buffer_peek(&socket->squeue, socket->squeue_buffer,
                                          &op)) {
@@ -145,6 +165,7 @@ void handle_squeue_change(struct pifus_socket *socket) {
 
         // refresh shadow variable of futex
         socket_futexes[app_index][socket_index]++;
+        socket->enqueued_ops++;
       } else {
         pifus_log("pifus_tx: Could not put() into tx_queue. Is it full?\n");
         return;

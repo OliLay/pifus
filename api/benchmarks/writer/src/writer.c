@@ -49,15 +49,18 @@ int main(int argc, char *argv[]) {
       if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
         printf("Wrote '%s'\n", loop_data);
         sent++;
-        free(loop_data);
       }
+
+       free(loop_data);
     }
 
-    while (sent > 0) {
-      if (pifus_socket_get_latest_result(socket, &operation_result)) {
-        sent--;
-      }
-    }
+    pifus_socket_get_latest_result(socket, &operation_result);
+
+   // while (sent > 0) {
+   //   if (pifus_socket_get_latest_result(socket, &operation_result)) {
+   //     sent--;
+   //   }
+   // }
 
     // if (!pifus_socket_write(socket, loop_data, strlen(loop_data))) {
     //   pifus_socket_wait(socket, &operation_result);

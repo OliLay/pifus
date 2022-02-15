@@ -47,6 +47,10 @@ struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
  * TX operations from all sockets.
  */
 struct pifus_tx_queue tx_queue;
+/**
+ * How many times the stack iterated with a full SNDBUFFER.
+ */
+uint8_t full_sndbuf_iterations = 0;
 
 void enqueue_in_cqueue(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
@@ -60,9 +64,8 @@ void enqueue_in_cqueue(struct pifus_socket *socket,
     socket->cqueue_futex++;
     futex_wake(&socket->cqueue_futex);
   } else {
-    pifus_debug_log(
-        "pifus: Could not put into cqueue for (%u/%u). Is it full?\n",
-        socket->identifier.app_index, socket->identifier.socket_index);
+    pifus_log("pifus: Could not put into cqueue for (%u/%u). Is it full?\n",
+              socket->identifier.app_index, socket->identifier.socket_index);
   }
 }
 
@@ -90,11 +93,8 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       // this has to happen in the main lwIP thread, as calling tcp_* funcs is
       // not safe in the TX thread
       internal_op->socket->pcb.tcp = tcp_new();
+      tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
     }
-
-    // TODO: check if we can check if callback is already set then we dont have
-    // to set it.
-    tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
 
     switch (internal_op->operation.code) {
     case TCP_BIND:
@@ -152,9 +152,15 @@ void lwip_loop_iteration(void) {
     struct pifus_operation_result operation_result = process_tx_op(tx_op);
 
     if (operation_result.result_code == PIFUS_TRY_AGAIN) {
+      full_sndbuf_iterations++;
       pifus_log("pifus: Not dequeing op, trying again later. (probably "
-                      "SNDBUFFER full)\n",
-                      app_index, socket_index);
+                "SNDBUFFER full)\n",
+                app_index, socket_index);
+
+      if (full_sndbuf_iterations >= MAX_FULL_SND_BUF_ITERATIONS) {
+        pifus_log("Scanning tx_queue for recv_ops.\n");
+        // TODO: search recv() ops.
+      }
       return;
     }
 
@@ -167,7 +173,11 @@ void lwip_loop_iteration(void) {
     }
 
     pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
+
     dequeued_operations++;
+    tx_op->socket->dequeued_ops++;
+
+    full_sndbuf_iterations = 0;
   }
 
   send_buffer_full = false;

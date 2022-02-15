@@ -21,7 +21,7 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
   void *data_ptr = shm_data_get_data_ptr(block);
 
   struct tcp_pcb *pcb = socket->pcb.tcp;
-  err_t result = tcp_write(pcb, data_ptr, block->size, 0);
+  err_t result = tcp_write(pcb, data_ptr, block->size, 0x00);
 
   struct pifus_operation_result operation_result;
   operation_result.data.write = internal_op->operation.data.write;
@@ -67,6 +67,7 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
     pifus_log(
         "pifus: Could not dequeue write_queue_entry from write_queue in sent "
         "callback! Can't notify app that write was successful.\n");
+    exit(1);
   }
 
   if (write_queue_entry->size <= len) {

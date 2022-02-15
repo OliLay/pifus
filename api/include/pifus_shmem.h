@@ -43,6 +43,10 @@ struct pifus_socket {
   struct pifus_byte_buffer recv_buffer;
   uint8_t recv_buffer_array[RECV_BUFFER_SIZE];
 
+  /* stats (for rate limiting) */
+  uint64_t enqueued_ops;
+  uint64_t dequeued_ops;
+
   /* ATTENTION: pointers below this note are only valid for stack side */
   /* internal lwIP mappings */
   union {
