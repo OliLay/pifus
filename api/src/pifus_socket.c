@@ -15,7 +15,6 @@
 #include "utils/log.h"
 
 struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
-futex_t socket_futexes[MAX_SOCKETS_PER_APP];
 
 struct pifus_socket *map_socket_region(void);
 bool is_queue_full(struct pifus_socket *socket);
@@ -48,6 +47,7 @@ struct pifus_socket *map_socket_region(void) {
   struct pifus_socket *socket =
       (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
   sockets[app_state->highest_socket_number] = socket;
+
   return socket;
 }
 
@@ -235,9 +235,11 @@ bool pifus_socket_close(struct pifus_socket *socket) {
     close_operation.code = UDP_DISCONNECT;
   }
 
-  sockets[socket->identifier.socket_index] = NULL;
+  if (!enqueue_operation(socket, close_operation)) {
+    return false;
+  }
 
-  return enqueue_operation(socket, close_operation);
+  return true;
 }
 
 bool dequeue_operation(struct pifus_socket *socket,
@@ -268,6 +270,7 @@ bool dequeue_operation(struct pifus_socket *socket,
     if (operation_result->code == TCP_CLOSE ||
         operation_result->code == UDP_DISCONNECT) {
       unlink_socket(socket);
+      sockets[socket->identifier.socket_index] = NULL;
     }
 
     pifus_debug_log("Dequeued from cqueue\n");
@@ -276,10 +279,23 @@ bool dequeue_operation(struct pifus_socket *socket,
   return success;
 }
 
-bool pifus_socket_get_latest_result(
-    struct pifus_socket *socket,
-    struct pifus_operation_result *operation_result) {
+bool pifus_socket_pop_result(struct pifus_socket *socket,
+                             struct pifus_operation_result *operation_result) {
   return dequeue_operation(socket, operation_result);
+}
+
+bool pifus_socket_peek_result_code(struct pifus_socket *socket,
+                                   enum pifus_operation_code **code) {
+  struct pifus_operation_result* result = NULL;
+  bool success = pifus_operation_result_ring_buffer_peek(
+      &socket->cqueue, socket->cqueue_buffer, &result);
+  
+  if (success) {
+    *code = &result->code;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void pifus_socket_wait(struct pifus_socket *socket,
@@ -289,9 +305,13 @@ void pifus_socket_wait(struct pifus_socket *socket,
   }
 
   while (true) {
-    if (futex_wait(&socket->cqueue_futex, socket->cqueue_futex) < 0) {
-      pifus_debug_log("pifus: futex_wait in socket_poll returned %s\n",
-                      strerror(errno));
+    /* can only use futexes + wait when in poll-mode,
+    because in callback mode, we already use futex_waitv to
+    invoke the callback */
+    if (callback == NULL &&
+        futex_wait(&socket->cqueue_futex, socket->cqueue_futex) < 0) {
+      pifus_log("pifus: futex_wait in socket_poll returned %s\n",
+                strerror(errno));
     }
 
     if (dequeue_operation(socket, operation_result)) {

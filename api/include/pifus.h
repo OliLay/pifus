@@ -9,6 +9,7 @@ extern char *app_shm_name;
 extern struct pifus_app *app_state;
 
 typedef void (*pifus_callback)(struct pifus_socket *);
+extern pifus_callback callback;
 
 /**
  * @brief Initializes the interface.

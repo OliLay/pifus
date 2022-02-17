@@ -96,9 +96,20 @@ bool pifus_socket_close(struct pifus_socket *socket);
  * @return true If there was a new result and it was written into the output arg
  * @return false If there was no new result
  */
-bool pifus_socket_get_latest_result(
+bool pifus_socket_pop_result(
     struct pifus_socket *socket,
     struct pifus_operation_result *operation_result);
+
+/**
+ * @brief Gets the op code of the next result.
+ * 
+ * @param socket The socket that the result should belong to.
+ * @param code Out: Pointer to a pointer, pointing to opcode on success
+ * @return true Success
+ * @return false No success (e.g. nothing in queue)
+ */
+bool pifus_socket_peek_result_code(struct pifus_socket *socket,
+                                   enum pifus_operation_code **code);
 
 /**
  * @brief Waits for a operation inside a socket to complete.

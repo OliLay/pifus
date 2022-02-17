@@ -6,8 +6,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
 
 /* shmem includes */
 #include <fcntl.h>
@@ -23,7 +23,7 @@
 
 pthread_t callback_thread;
 pifus_callback callback;
-extern futex_t socket_futexes[MAX_SOCKETS_PER_APP];
+futex_t socket_futexes[MAX_SOCKETS_PER_APP];
 static struct futex_waitv waitvs[MAX_SOCKETS_PER_APP];
 /** futex nr to socket_index **/
 socket_index_t socket_from_futex_nr[MAX_SOCKETS_PER_APP];
@@ -36,6 +36,7 @@ struct pifus_app *map_app_region(int fd);
 void start_callback_thread(void);
 void *callback_thread_loop(void *arg);
 uint8_t fill_sockets_waitv(void);
+void handle_new_cqueue_entry(struct pifus_socket *socket);
 
 /**
  * @brief Calls shmem_open with next available app id
@@ -95,6 +96,22 @@ void pifus_exit(void) {
   shm_unlink_region(app_shm_name);
 }
 
+void handle_new_cqueue_entry(struct pifus_socket *socket) {
+  if (socket == NULL) {
+    // may be NULL already (after closing)
+    return;
+  }
+
+  size_t shadow_actual_difference =
+      socket->cqueue_futex - socket_futexes[socket->identifier.socket_index];
+  socket_futexes[socket->identifier.socket_index] = socket->cqueue_futex;
+  
+
+  for (size_t i = 0; i < shadow_actual_difference; i++) {
+    callback(socket);
+  }
+}
+
 uint8_t fill_sockets_waitv(void) {
   uint8_t current_amount_futexes = 0;
   for (socket_index_t socket_index = 1;
@@ -103,7 +120,7 @@ uint8_t fill_sockets_waitv(void) {
 
     if (current_socket_ptr != NULL) {
       if (current_socket_ptr->cqueue_futex != socket_futexes[socket_index]) {
-        callback(current_socket_ptr);
+        handle_new_cqueue_entry(current_socket_ptr);
       }
 
       waitvs[current_amount_futexes].uaddr =
@@ -125,13 +142,18 @@ void *callback_thread_loop(void *arg) {
   while (true) {
     uint8_t amount_futexes = fill_sockets_waitv();
     if (amount_futexes > 0) {
-      int ret_code = futex_waitv(waitvs, amount_futexes, 0, NULL, 0);
+      struct timespec timespec;
+      clock_gettime(CLOCK_MONOTONIC, &timespec);
+      timespec.tv_sec += 1;
+      timespec.tv_nsec = 0;
+      int ret_code =
+          futex_waitv(waitvs, amount_futexes, 0, &timespec, CLOCK_MONOTONIC);
 
       if (ret_code >= 0) {
-        struct pifus_socket* socket = sockets[socket_from_futex_nr[ret_code]];
+        socket_index_t socket_index = socket_from_futex_nr[ret_code];
+        struct pifus_socket *socket = sockets[socket_index];
 
-        // TODO: need to increase shadow variables :)
-        callback(socket);
+        handle_new_cqueue_entry(socket);
 
         /* clean up previous mappings */
         memset(socket_from_futex_nr, 0, sizeof(socket_from_futex_nr));

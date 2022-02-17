@@ -12,6 +12,8 @@
 #include "pifus_socket.h"
 #include "reader.h"
 
+int current_expected_number = 0;
+
 void print_result(struct pifus_operation_result *result) {
   printf("Result returned: opcode %s, result code %u \n",
          operation_str(result->code), result->result_code);
@@ -19,6 +21,42 @@ void print_result(struct pifus_operation_result *result) {
 
 void callback_func(struct pifus_socket *socket) {
   printf("Callback received from sock %u\n", socket->identifier.socket_index);
+
+  enum pifus_operation_code *next_op_code = NULL;
+
+  if (pifus_socket_peek_result_code(socket, &next_op_code) && *next_op_code == TCP_RECV) {
+    struct pifus_operation_result operation_result;
+    pifus_socket_pop_result(socket, &operation_result);
+
+    // TODO: make this more user friendly (retrieving data ptr)
+    if (operation_result.result_code == PIFUS_OK) {
+      struct pifus_memory_block *block =
+          operation_result.data.recv.memory_block_ptr;
+      char *data = shm_data_get_data_ptr(block);
+      char number = data[block->size - 1] - '0';
+
+      fwrite(data, sizeof(char), block->size, stdout);
+      printf("\n");
+
+      if (number != current_expected_number) {
+        printf("ERROR: Expected %i but got %i instead!\n",
+               current_expected_number, number);
+
+        current_expected_number = number;
+        exit(1);
+      }
+
+      shm_data_free(app_state, block);
+
+      if (current_expected_number < 9) {
+        current_expected_number++;
+      } else {
+        current_expected_number = 0;
+      }
+
+      pifus_socket_recv(socket, 50);
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -48,39 +86,11 @@ int main(int argc, char *argv[]) {
   pifus_socket_close(to_be_closed_socket);
   pifus_socket_wait(to_be_closed_socket, &operation_result);
 
-  int current_expected_number = 0;
+  pifus_socket_recv(accepted_socket, 50);
+
+  // rest is done via callback :)
   while (true) {
-    if (pifus_socket_recv(accepted_socket, 50)) {
-      pifus_socket_wait(accepted_socket, &operation_result);
-      print_result(&operation_result);
-
-      // TODO: make this more user friendly (retrieving data ptr)
-      if (operation_result.result_code == PIFUS_OK) {
-        struct pifus_memory_block *block =
-            operation_result.data.recv.memory_block_ptr;
-        char *data = shm_data_get_data_ptr(block);
-        char number = data[block->size - 1] - '0';
-
-        fwrite(data, sizeof(char), block->size, stdout);
-        printf("\n");
-
-        if (number != current_expected_number) {
-          printf("ERROR: Expected %i but got %i instead!\n",
-                 current_expected_number, number);
-
-          current_expected_number = number;
-          exit(1);
-        }
-
-        shm_data_free(app_state, block);
-
-        if (current_expected_number < 9) {
-          current_expected_number++;
-        } else {
-          current_expected_number = 0;
-        }
-      }
-    }
+    sleep(10);
   }
 
   pifus_exit();

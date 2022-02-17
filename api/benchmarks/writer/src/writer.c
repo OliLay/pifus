@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
        free(loop_data);
     }
 
-    while (pifus_socket_get_latest_result(socket, &operation_result)) {
+    while (pifus_socket_pop_result(socket, &operation_result)) {
       print_result(&operation_result);
     }
 
