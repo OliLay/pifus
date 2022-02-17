@@ -1,12 +1,13 @@
 #define _GNU_SOURCE
 
 /* standard includes */
+#include "pthread.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "pthread.h"
+#include <string.h>
 
 /* shmem includes */
 #include <fcntl.h>
@@ -22,6 +23,10 @@
 
 pthread_t callback_thread;
 pifus_callback callback;
+extern futex_t socket_futexes[MAX_SOCKETS_PER_APP];
+static struct futex_waitv waitvs[MAX_SOCKETS_PER_APP];
+/** futex nr to socket_index **/
+socket_index_t socket_from_futex_nr[MAX_SOCKETS_PER_APP];
 
 char *app_shm_name = NULL;
 struct pifus_app *app_state = NULL;
@@ -29,6 +34,8 @@ struct pifus_app *app_state = NULL;
 int create_app_shm_region(void);
 struct pifus_app *map_app_region(int fd);
 void start_callback_thread(void);
+void *callback_thread_loop(void *arg);
+uint8_t fill_sockets_waitv(void);
 
 /**
  * @brief Calls shmem_open with next available app id
@@ -88,10 +95,50 @@ void pifus_exit(void) {
   shm_unlink_region(app_shm_name);
 }
 
-void *callback_thread_loop(void *arg) {
-  
+uint8_t fill_sockets_waitv(void) {
+  uint8_t current_amount_futexes = 0;
+  for (socket_index_t socket_index = 1;
+       socket_index <= app_state->highest_socket_number; socket_index++) {
+    struct pifus_socket *current_socket_ptr = sockets[socket_index];
+
+    if (current_socket_ptr != NULL) {
+      if (current_socket_ptr->cqueue_futex != socket_futexes[socket_index]) {
+        callback(current_socket_ptr);
+      }
+
+      waitvs[current_amount_futexes].uaddr =
+          (uintptr_t)&current_socket_ptr->cqueue_futex;
+      waitvs[current_amount_futexes].flags = FUTEX_32;
+      waitvs[current_amount_futexes].val = socket_futexes[socket_index];
+      waitvs[current_amount_futexes].__reserved = 0;
+      socket_from_futex_nr[current_amount_futexes] = socket_index;
+
+      current_amount_futexes++;
+    }
+  }
+
+  return current_amount_futexes;
 }
 
+void *callback_thread_loop(void *arg) {
+  PIFUS_UNUSED_ARG(arg);
+  while (true) {
+    uint8_t amount_futexes = fill_sockets_waitv();
+    if (amount_futexes > 0) {
+      int ret_code = futex_waitv(waitvs, amount_futexes, 0, NULL, 0);
+
+      if (ret_code >= 0) {
+        struct pifus_socket* socket = sockets[socket_from_futex_nr[ret_code]];
+
+        // TODO: need to increase shadow variables :)
+        callback(socket);
+
+        /* clean up previous mappings */
+        memset(socket_from_futex_nr, 0, sizeof(socket_from_futex_nr));
+      }
+    }
+  }
+}
 
 void start_callback_thread(void) {
   int ret = pthread_create(&callback_thread, NULL, callback_thread_loop, NULL);

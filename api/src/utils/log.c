@@ -1,9 +1,5 @@
 #include "utils/log.h"
 
-#ifndef PIFUS_UNUSED_ARG
-#define PIFUS_UNUSED_ARG(x) (void)x
-#endif /* PIFUS_UNUSED_ARG */
-
 /* std */
 #include <stdarg.h>
 #include <stdio.h>

@@ -17,10 +17,14 @@ void print_result(struct pifus_operation_result *result) {
          operation_str(result->code), result->result_code);
 }
 
+void callback_func(struct pifus_socket *socket) {
+  printf("Callback received from sock %u\n", socket->identifier.socket_index);
+}
+
 int main(int argc, char *argv[]) {
   printf("Starting pifus_reader...\n");
 
-  pifus_initialize(NULL);
+  pifus_initialize(&callback_func);
 
   struct pifus_socket *to_be_closed_socket = pifus_socket(PROTOCOL_TCP);
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
@@ -61,8 +65,8 @@ int main(int argc, char *argv[]) {
         printf("\n");
 
         if (number != current_expected_number) {
-          printf("ERROR: Expected %i but got %i instead!\n", current_expected_number,
-                 number);
+          printf("ERROR: Expected %i but got %i instead!\n",
+                 current_expected_number, number);
 
           current_expected_number = number;
           exit(1);

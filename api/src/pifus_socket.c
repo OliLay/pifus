@@ -15,6 +15,7 @@
 #include "utils/log.h"
 
 struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
+futex_t socket_futexes[MAX_SOCKETS_PER_APP];
 
 struct pifus_socket *map_socket_region(void);
 bool is_queue_full(struct pifus_socket *socket);

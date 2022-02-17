@@ -260,6 +260,7 @@ void *tx_thread_loop(void *arg) {
       int ret_code =
           futex_waitv(waitvs, amount_futexes, 0, &timespec, CLOCK_MONOTONIC);
       if (ret_code >= 0) {
+        // this is unused. why?
         struct futex_waitv signaled_wait = waitvs[ret_code];
 
         if (socket_from_futex_nr[ret_code] == NULL) {
