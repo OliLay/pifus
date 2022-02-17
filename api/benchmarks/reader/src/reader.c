@@ -20,7 +20,7 @@ void print_result(struct pifus_operation_result *result) {
 int main(int argc, char *argv[]) {
   printf("Starting pifus_reader...\n");
 
-  pifus_initialize();
+  pifus_initialize(NULL);
 
   struct pifus_socket *to_be_closed_socket = pifus_socket(PROTOCOL_TCP);
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);

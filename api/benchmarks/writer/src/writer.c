@@ -20,7 +20,7 @@ void print_result(struct pifus_operation_result *result) {
 int main(int argc, char *argv[]) {
   printf("Starting pifus_writer...\n");
 
-  pifus_initialize();
+  pifus_initialize(NULL);
 
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
   pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 50113);

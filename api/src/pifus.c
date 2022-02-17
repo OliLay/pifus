@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "pthread.h"
 
 /* shmem includes */
 #include <fcntl.h>
@@ -19,11 +20,15 @@
 #include "pifus_socket.h"
 #include "utils/log.h"
 
+pthread_t callback_thread;
+pifus_callback callback;
+
 char *app_shm_name = NULL;
 struct pifus_app *app_state = NULL;
 
 int create_app_shm_region(void);
 struct pifus_app *map_app_region(int fd);
+void start_callback_thread(void);
 
 /**
  * @brief Calls shmem_open with next available app id
@@ -65,9 +70,15 @@ struct pifus_app *map_app_region(int fd) {
   return (struct pifus_app *)shm_map_region(fd, SHM_APP_SIZE, true);
 }
 
-void pifus_initialize(void) {
+void pifus_initialize(pifus_callback cb) {
   int app_shmem_fd = create_app_shm_region();
   app_state = map_app_region(app_shmem_fd);
+
+  if (cb != NULL) {
+    callback = cb;
+    pifus_log("Using callback-mode, starting callback thread.\n");
+    start_callback_thread();
+  }
 
   pifus_log("pifus: Initialized!\n");
 }
@@ -75,4 +86,19 @@ void pifus_initialize(void) {
 void pifus_exit(void) {
   pifus_socket_exit_all();
   shm_unlink_region(app_shm_name);
+}
+
+void *callback_thread_loop(void *arg) {
+  
+}
+
+
+void start_callback_thread(void) {
+  int ret = pthread_create(&callback_thread, NULL, callback_thread_loop, NULL);
+
+  if (ret < 0) {
+    pifus_log("pifus: Could not start callback thread due to %i!\n", errno);
+  } else {
+    pifus_debug_log("pifus: Started callback thread!\n");
+  }
 }

@@ -14,6 +14,8 @@
 #include "utils/futex.h"
 #include "utils/log.h"
 
+struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
+
 struct pifus_socket *map_socket_region(void);
 bool is_queue_full(struct pifus_socket *socket);
 bool enqueue_operation(struct pifus_socket *socket,
@@ -41,7 +43,11 @@ struct pifus_socket *map_socket_region(void) {
   int fd = shm_open_region(shm_name, true);
 
   free(shm_name);
-  return (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
+
+  struct pifus_socket *socket =
+      (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
+  sockets[app_state->highest_socket_number] = socket;
+  return socket;
 }
 
 bool enqueue_operation(struct pifus_socket *socket,
@@ -227,6 +233,8 @@ bool pifus_socket_close(struct pifus_socket *socket) {
   } else {
     close_operation.code = UDP_DISCONNECT;
   }
+
+  sockets[socket->identifier.socket_index] = NULL;
 
   return enqueue_operation(socket, close_operation);
 }
