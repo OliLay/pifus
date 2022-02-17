@@ -20,6 +20,7 @@ void print_result(struct pifus_operation_result *result) {
 }
 
 void callback_func(struct pifus_socket *socket) {
+  // TODO: would be nice if opcode is supplied in callback
   printf("Callback received from sock %u\n", socket->identifier.socket_index);
 
   enum pifus_operation_code *next_op_code = NULL;
