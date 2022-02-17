@@ -7,8 +7,6 @@
 /* lwIP */
 #include "lwip/tcp.h"
 
-extern bool send_buffer_full;
-
 err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len);
 
 struct pifus_operation_result

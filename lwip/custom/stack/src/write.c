@@ -3,12 +3,6 @@
 /* pifus */
 #include "stack.h"
 #include "utils/log.h"
-
-/**
- * True when the send buffer is full, else false.
- */
-bool send_buffer_full = false;
-
 struct pifus_operation_result
 tx_tcp_write(struct pifus_internal_operation *internal_op) {
   struct pifus_write_data *write_data = &internal_op->operation.data.write;
@@ -44,7 +38,6 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
     tcp_sent(pcb, &tcp_sent_callback);
   } else {
     if (result == ERR_MEM) {
-      send_buffer_full = true;
       operation_result.result_code = PIFUS_TRY_AGAIN;
     } else {
       pifus_log("pifus: could not tcp_write as err is '%i'\n", result);

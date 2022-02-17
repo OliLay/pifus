@@ -68,6 +68,10 @@
   bool NAME##_put(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,           \
                   ELEMENT_TYPE const pel);
 
+#define RING_BUFFER_FIND(NAME, ELEMENT_TYPE)                                   \
+  bool NAME##_find(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,          \
+                   ELEMENT_TYPE **pel, bool (*satisfies)(ELEMENT_TYPE *));
+
 #define RING_BUFFER_IS_FULL(NAME)                                              \
   bool NAME##_is_full(struct NAME *const ring_buffer);
 
@@ -78,7 +82,8 @@
   RING_BUFFER_PEEK(NAME, ELEMENT_TYPE)                                         \
   RING_BUFFER_ERASE_FIRST(NAME)                                                \
   RING_BUFFER_PUT(NAME, ELEMENT_TYPE)                                          \
-  RING_BUFFER_IS_FULL(NAME)
+  RING_BUFFER_IS_FULL(NAME)                                                    \
+  RING_BUFFER_FIND(NAME, ELEMENT_TYPE)
 
 RING_BUFFER_HEADER_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
 RING_BUFFER_HEADER_DEFS(pifus_operation_result_ring_buffer,

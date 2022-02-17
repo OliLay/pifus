@@ -157,9 +157,11 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
 
         if (bytes_copied < len_next_pbuf) {
           // buffer full
-          pifus_log("pifus: recv buffer full. Discarding additional "
-                    "data. (%u bytes)\n",
-                    len_data_available);
+          pifus_log(
+              "pifus: recv buffer full for (%u/%u). Discarding additional "
+              "data. (%u bytes)\n",
+              socket->identifier.app_index, socket->identifier.socket_index,
+              len_data_available);
           break;
         } else {
           // reset the offset

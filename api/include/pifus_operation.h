@@ -22,7 +22,8 @@
   C(UDP_DISCONNECT, 102)                                                       \
   C(UDP_SEND, 103)                                                             \
   C(UDP_RECV, 104)                                                             \
-  C(CONNECTION_LOST, 200)
+  C(CONNECTION_LOST, 200)                                                      \
+  C(NOP, 255)
 #define C(k, v) k = v,
 enum pifus_operation_code { OPERATIONS };
 #undef C
@@ -57,7 +58,7 @@ struct pifus_recv_data {
   block_offset_t recv_block_offset;
   size_t size;
   /* ptr only valid on client side */
-  void* memory_block_ptr;
+  void *memory_block_ptr;
 };
 
 /**
@@ -72,9 +73,9 @@ struct pifus_listen_data {
  */
 struct pifus_accept_data {
   /* ptr only valid on client side */
-  struct pifus_socket* socket;
+  struct pifus_socket *socket;
   /* ptr only valid on stack side */
-  void* pcb;
+  void *pcb;
 };
 
 struct pifus_write_queue_entry {

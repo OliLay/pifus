@@ -88,44 +88,48 @@ struct pifus_operation_result
 process_tx_op(struct pifus_internal_operation *internal_op) {
   struct pifus_operation_result operation_result;
 
-  if (is_tcp_operation(&internal_op->operation)) {
-    if (internal_op->socket->pcb.tcp == NULL) {
-      // this has to happen in the main lwIP thread, as calling tcp_* funcs is
-      // not safe in the TX thread
-      internal_op->socket->pcb.tcp = tcp_new();
-      tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
-    }
-
-    switch (internal_op->operation.code) {
-    case TCP_BIND:
-      operation_result = tx_tcp_bind(internal_op);
-      break;
-    case TCP_CONNECT:
-      operation_result = tx_tcp_connect(internal_op);
-      break;
-    case TCP_WRITE:
-      operation_result = tx_tcp_write(internal_op);
-      break;
-    case TCP_RECV:
-      operation_result = tx_tcp_recv(internal_op);
-      break;
-    case TCP_LISTEN:
-      operation_result = tx_tcp_listen(internal_op);
-      break;
-    case TCP_ACCEPT:
-      operation_result = tx_tcp_accept(internal_op);
-      break;
-    case TCP_CLOSE:
-      operation_result = tx_tcp_close(internal_op);
-      break;
-    default:
-      pifus_log("pifus: TX op code %u is not known!\n",
-                internal_op->operation.code);
-    }
+  if (internal_op->operation.code == NOP) {
+    operation_result.result_code = PIFUS_OK;
   } else {
-    pifus_log("pifus: UDP TX not implemented yet! bye bye \n");
-    exit(1);
-    // TODO: UDP TX handling
+    if (is_tcp_operation(&internal_op->operation)) {
+      if (internal_op->socket->pcb.tcp == NULL) {
+        // this has to happen in the main lwIP thread, as calling tcp_* funcs is
+        // not safe in the TX thread
+        internal_op->socket->pcb.tcp = tcp_new();
+        tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
+      }
+
+      switch (internal_op->operation.code) {
+      case TCP_BIND:
+        operation_result = tx_tcp_bind(internal_op);
+        break;
+      case TCP_CONNECT:
+        operation_result = tx_tcp_connect(internal_op);
+        break;
+      case TCP_WRITE:
+        operation_result = tx_tcp_write(internal_op);
+        break;
+      case TCP_RECV:
+        operation_result = tx_tcp_recv(internal_op);
+        break;
+      case TCP_LISTEN:
+        operation_result = tx_tcp_listen(internal_op);
+        break;
+      case TCP_ACCEPT:
+        operation_result = tx_tcp_accept(internal_op);
+        break;
+      case TCP_CLOSE:
+        operation_result = tx_tcp_close(internal_op);
+        break;
+      default:
+        pifus_log("pifus: TX op code %u is not known!\n",
+                  internal_op->operation.code);
+      }
+    } else {
+      pifus_log("pifus: UDP TX not implemented yet! bye bye \n");
+      exit(1);
+      // TODO: UDP TX handling
+    }
   }
 
   // set the opcode to the according one that was TX'ed
@@ -133,54 +137,79 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
   return operation_result;
 }
 
+bool is_recv_op(struct pifus_internal_operation *operation) {
+  return operation->operation.code == TCP_RECV;
+}
+
+bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
+                      uint8_t *dequeued_ops) {
+  const app_index_t app_index = tx_op->socket->identifier.app_index;
+  const socket_index_t socket_index = tx_op->socket->identifier.socket_index;
+
+  pifus_debug_log("pifus: Operation received from app%u/socket%u: %s\n",
+                  app_index, socket_index,
+                  operation_str(tx_op->operation.code));
+
+  struct pifus_operation_result operation_result = process_tx_op(tx_op);
+
+  if (operation_result.code == NOP && !recv_scan) {
+    pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
+    return true;
+  }
+
+  if (operation_result.result_code == PIFUS_TRY_AGAIN) {
+    if (full_sndbuf_iterations >= MAX_FULL_SND_BUF_ITERATIONS) {
+      pifus_log("Scanning tx_queue for recv ops to prevent deadlock, as SNDBUF "
+                "was full for %u iterations.\n",
+                full_sndbuf_iterations);
+
+      struct pifus_internal_operation *recv_op = NULL;
+      if (pifus_tx_ring_buffer_find(&tx_queue.ring_buffer,
+                                    tx_queue.tx_queue_buffer, &recv_op,
+                                    &is_recv_op)) {
+        return handle_operation(recv_op, true, dequeued_ops);
+      } else {
+        return false;
+      }
+    }
+
+    full_sndbuf_iterations++;
+
+    return false;
+  }
+
+  if (operation_result.result_code != PIFUS_ASYNC) {
+    // ASYNC ops are not enqueued into cqueue, only after they have finished
+    enqueue_in_cqueue(tx_op->socket, &operation_result);
+  }
+
+  tx_op->socket->dequeued_ops++;
+
+  if (recv_scan) {
+    // we took an op further down, replace it with NOP as we can not
+    // pop from the middle of the queue
+    tx_op->operation.code = NOP;
+  } else {
+    full_sndbuf_iterations = 0;
+    pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
+    (*dequeued_ops)++;
+  }
+
+  return true;
+}
+
 void lwip_loop_iteration(void) {
   uint8_t dequeued_operations = 0;
 
   struct pifus_internal_operation *tx_op;
-  /** TODO: currently, a full SNDBUF holds up everything. (can lead to deadlock)
-    maybe: control queue, recv queue, write queue. */
   while (dequeued_operations < MAX_DEQUEUES_PER_ITERATION &&
          pifus_tx_ring_buffer_peek(&tx_queue.ring_buffer,
                                    tx_queue.tx_queue_buffer, &tx_op)) {
-    const app_index_t app_index = tx_op->socket->identifier.app_index;
-    const socket_index_t socket_index = tx_op->socket->identifier.socket_index;
 
-    pifus_debug_log("pifus: Operation received from app%u/socket%u: %s\n",
-                    app_index, socket_index,
-                    operation_str(tx_op->operation.code));
-
-    struct pifus_operation_result operation_result = process_tx_op(tx_op);
-
-    if (operation_result.result_code == PIFUS_TRY_AGAIN) {
-      full_sndbuf_iterations++;
-      pifus_log("pifus: Not dequeing op, trying again later. (probably "
-                "SNDBUFFER full)\n",
-                app_index, socket_index);
-
-      if (full_sndbuf_iterations >= MAX_FULL_SND_BUF_ITERATIONS) {
-        pifus_log("Scanning tx_queue for recv_ops.\n");
-        // TODO: search recv() ops.
-      }
+    if (!handle_operation(tx_op, false, &dequeued_operations)) {
       return;
     }
-
-    if (operation_result.result_code == PIFUS_ASYNC) {
-      pifus_debug_log("pifus: Async operation triggered in lwIP, not enqueing "
-                      "into cqueue for %u in app %u\n",
-                      app_index, socket_index);
-    } else {
-      enqueue_in_cqueue(tx_op->socket, &operation_result);
-    }
-
-    pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
-
-    dequeued_operations++;
-    tx_op->socket->dequeued_ops++;
-
-    full_sndbuf_iterations = 0;
   }
-
-  send_buffer_full = false;
 }
 
 void lwip_init_complete(void) {

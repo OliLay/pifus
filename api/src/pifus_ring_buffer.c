@@ -110,6 +110,24 @@
     }                                                                          \
   }
 
+#define RING_BUFFER_FN_ERASE_FIND(NAME, ELEMENT_TYPE)                          \
+  bool NAME##_find(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,          \
+                   ELEMENT_TYPE **pel, bool (*satisfies)(ELEMENT_TYPE *)) {    \
+    uint16_t tail = ring_buffer->tail;                                         \
+    while (ring_buffer->head != tail) { /* ring buffer NOT empty? */           \
+      if (satisfies(&buf[tail])) {                                             \
+        *pel = &buf[tail];                                                     \
+        return true;                                                           \
+      } else {                                                                 \
+        tail++;                                                                \
+        if (tail == ring_buffer->end) {                                        \
+          tail = 0U;                                                           \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+    return false;                                                              \
+  }
+
 #define RING_BUFFER_FN_IS_FULL(NAME)                                           \
   bool NAME##_is_full(struct NAME *const ring_buffer) {                        \
     uint16_t head = ring_buffer->head + 1U;                                    \
@@ -125,7 +143,8 @@
   RING_BUFFER_FN_PEEK(NAME, ELEMENT_TYPE)                                      \
   RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)                                       \
   RING_BUFFER_FN_ERASE_FIRST(NAME)                                             \
-  RING_BUFFER_FN_IS_FULL(NAME)
+  RING_BUFFER_FN_IS_FULL(NAME)                                                 \
+  RING_BUFFER_FN_ERASE_FIND(NAME, ELEMENT_TYPE)
 
 RING_BUFFER_SOURCE_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
 RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer,

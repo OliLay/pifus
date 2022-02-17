@@ -23,8 +23,6 @@ int main(int argc, char *argv[]) {
   pifus_initialize();
 
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
-  struct pifus_socket *socket1 = pifus_socket(PROTOCOL_UDP);
-
   pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 50113);
 
   /* TODO: writer logic */
@@ -54,7 +52,9 @@ int main(int argc, char *argv[]) {
        free(loop_data);
     }
 
-    pifus_socket_get_latest_result(socket, &operation_result);
+    while (pifus_socket_get_latest_result(socket, &operation_result)) {
+      print_result(&operation_result);
+    }
 
    // while (sent > 0) {
    //   if (pifus_socket_get_latest_result(socket, &operation_result)) {
