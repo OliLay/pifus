@@ -159,7 +159,7 @@ bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
 
   if (operation_result.result_code == PIFUS_TRY_AGAIN) {
     if (full_sndbuf_iterations >= MAX_FULL_SND_BUF_ITERATIONS) {
-      pifus_log("Scanning tx_queue for recv ops to prevent deadlock, as SNDBUF "
+      pifus_debug_log("Scanning tx_queue for recv ops to prevent deadlock, as SNDBUF "
                 "was full for %u iterations.\n",
                 full_sndbuf_iterations);
 

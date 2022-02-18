@@ -8,7 +8,8 @@
 extern char *app_shm_name;
 extern struct pifus_app *app_state;
 
-typedef void (*pifus_callback)(struct pifus_socket *);
+typedef void (*pifus_callback)(struct pifus_socket *,
+                               enum pifus_operation_code);
 extern pifus_callback callback;
 
 /**

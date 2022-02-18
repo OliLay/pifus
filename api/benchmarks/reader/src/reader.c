@@ -19,13 +19,12 @@ void print_result(struct pifus_operation_result *result) {
          operation_str(result->code), result->result_code);
 }
 
-void callback_func(struct pifus_socket *socket) {
-  // TODO: would be nice if opcode is supplied in callback
-  printf("Callback received from sock %u\n", socket->identifier.socket_index);
+void callback_func(struct pifus_socket *socket,
+                   enum pifus_operation_code op_code) {
+  printf("Callback %s received from sock %u\n", operation_str(op_code),
+         socket->identifier.socket_index);
 
-  enum pifus_operation_code *next_op_code = NULL;
-
-  if (pifus_socket_peek_result_code(socket, &next_op_code) && *next_op_code == TCP_RECV) {
+  if (op_code == TCP_RECV) {
     struct pifus_operation_result operation_result;
     pifus_socket_pop_result(socket, &operation_result);
 

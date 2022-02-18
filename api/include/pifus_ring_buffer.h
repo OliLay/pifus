@@ -61,6 +61,10 @@
   bool NAME##_peek(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,          \
                    ELEMENT_TYPE **pel);
 
+#define RING_BUFFER_PEEK_INDEX(NAME, ELEMENT_TYPE)                             \
+  bool NAME##_peek_index(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,    \
+                         uint16_t index, ELEMENT_TYPE **pel);
+
 #define RING_BUFFER_ERASE_FIRST(NAME)                                          \
   bool NAME##_erase_first(struct NAME *const ring_buffer);
 
@@ -83,7 +87,8 @@
   RING_BUFFER_ERASE_FIRST(NAME)                                                \
   RING_BUFFER_PUT(NAME, ELEMENT_TYPE)                                          \
   RING_BUFFER_IS_FULL(NAME)                                                    \
-  RING_BUFFER_FIND(NAME, ELEMENT_TYPE)
+  RING_BUFFER_FIND(NAME, ELEMENT_TYPE)                                         \
+  RING_BUFFER_PEEK_INDEX(NAME, ELEMENT_TYPE)
 
 RING_BUFFER_HEADER_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
 RING_BUFFER_HEADER_DEFS(pifus_operation_result_ring_buffer,

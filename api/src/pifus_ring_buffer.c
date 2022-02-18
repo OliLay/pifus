@@ -136,6 +136,26 @@
     }                                                                          \
     return head == ring_buffer->tail;                                          \
   }
+  
+#define RING_BUFFER_FN_PEEK_INDEX(NAME, ELEMENT_TYPE)                          \
+  bool NAME##_peek_index(struct NAME *const ring_buffer, ELEMENT_TYPE *buf,    \
+                         uint16_t index, ELEMENT_TYPE **pel) {                 \
+    uint16_t tail = ring_buffer->tail;                                         \
+    uint16_t current_index = 0;                                                \
+    while (ring_buffer->head != tail) { /* ring buffer NOT empty? */           \
+      if (current_index == index) {                                            \
+        *pel = &buf[tail];                                                     \
+        return true;                                                           \
+      } else {                                                                 \
+        tail++;                                                                \
+        current_index++;                                                       \
+        if (tail == ring_buffer->end) {                                        \
+          tail = 0U;                                                           \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+    return false;                                                              \
+  }
 
 #define RING_BUFFER_SOURCE_DEFS(NAME, ELEMENT_TYPE)                            \
   RING_BUFFER_FN_CREATE(NAME)                                                  \
@@ -144,7 +164,8 @@
   RING_BUFFER_FN_PUT(NAME, ELEMENT_TYPE)                                       \
   RING_BUFFER_FN_ERASE_FIRST(NAME)                                             \
   RING_BUFFER_FN_IS_FULL(NAME)                                                 \
-  RING_BUFFER_FN_ERASE_FIND(NAME, ELEMENT_TYPE)
+  RING_BUFFER_FN_ERASE_FIND(NAME, ELEMENT_TYPE)                                \
+  RING_BUFFER_FN_PEEK_INDEX(NAME, ELEMENT_TYPE)
 
 RING_BUFFER_SOURCE_DEFS(pifus_operation_ring_buffer, struct pifus_operation)
 RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer,

@@ -106,9 +106,14 @@ void handle_new_cqueue_entry(struct pifus_socket *socket) {
       socket->cqueue_futex - socket_futexes[socket->identifier.socket_index];
   socket_futexes[socket->identifier.socket_index] = socket->cqueue_futex;
   
-
   for (size_t i = 0; i < shadow_actual_difference; i++) {
-    callback(socket);
+    enum pifus_operation_code *next_op_code = NULL;
+
+    if (pifus_socket_peek_result_code(socket, &next_op_code)) {
+      callback(socket, *next_op_code);
+    } else {
+      pifus_log("Not calling callback, as result has been dequeued already by user.\n");
+    }
   }
 }
 
