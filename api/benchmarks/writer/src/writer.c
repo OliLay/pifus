@@ -25,8 +25,6 @@ int main(int argc, char *argv[]) {
   struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
   pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 50113);
 
-  /* TODO: writer logic */
-
   struct pifus_operation_result operation_result;
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
@@ -55,37 +53,7 @@ int main(int argc, char *argv[]) {
     while (pifus_socket_pop_result(socket, &operation_result)) {
       print_result(&operation_result);
     }
-
-   // while (sent > 0) {
-   //   if (pifus_socket_get_latest_result(socket, &operation_result)) {
-   //     sent--;
-   //   }
-   // }
-
-    // if (!pifus_socket_write(socket, loop_data, strlen(loop_data))) {
-    //   pifus_socket_wait(socket, &operation_result);
-    //  print_result(&operation_result);
-    //}
-
-    // if (i % 2 == 0) {
-    //  pifus_socket_wait(socket, &operation_result);
-    //  print_result(&operation_result);
-
-    //  pifus_socket_wait(socket, &operation_result);
-    //  print_result(&operation_result);
-    //}
   }
-
-  /**
-   *  TODO: think about callback mechanism, e.g.
-   *    - call pifus_initialize(&callback_func)
-   *    - callback_func takes a socket*, and a operation_result
-   *    - "RX thread" runs an blocks with futex_waitv, and as soon as a result
-   *is available, callback is called
-   *    - NOTE: for this, sockets have to be held internally, and shadow
-   *variables of futexes
-   *    - NOTE: wait (poll) mode should still be available!
-   **/
 
   pifus_exit();
 

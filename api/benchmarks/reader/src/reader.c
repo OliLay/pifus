@@ -28,7 +28,6 @@ void callback_func(struct pifus_socket *socket,
     struct pifus_operation_result operation_result;
     pifus_socket_pop_result(socket, &operation_result);
 
-    // TODO: make this more user friendly (retrieving data ptr)
     if (operation_result.result_code == PIFUS_OK) {
       struct pifus_memory_block *block =
           operation_result.data.recv.memory_block_ptr;
@@ -56,6 +55,15 @@ void callback_func(struct pifus_socket *socket,
 
       pifus_socket_recv(socket, 50);
     }
+  } else if (op_code == TCP_ACCEPT) {
+    struct pifus_operation_result operation_result;
+    pifus_socket_pop_result(socket, &operation_result);
+
+    if (operation_result.result_code == PIFUS_OK) {
+      struct pifus_socket *accepted_socket =
+          operation_result.data.accept.socket;
+      pifus_socket_recv(accepted_socket, 50);
+    }
   }
 }
 
@@ -77,16 +85,10 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  pifus_socket_accept(socket);
-  pifus_socket_wait(socket, &operation_result);
-  print_result(&operation_result);
-
-  struct pifus_socket *accepted_socket = operation_result.data.accept.socket;
-
   pifus_socket_close(to_be_closed_socket);
   pifus_socket_wait(to_be_closed_socket, &operation_result);
 
-  pifus_socket_recv(accepted_socket, 50);
+  pifus_socket_accept(socket);
 
   // rest is done via callback :)
   while (true) {

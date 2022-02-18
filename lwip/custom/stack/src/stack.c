@@ -128,7 +128,6 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
     } else {
       pifus_log("pifus: UDP TX not implemented yet! bye bye \n");
       exit(1);
-      // TODO: UDP TX handling
     }
   }
 

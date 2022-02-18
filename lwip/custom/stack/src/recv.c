@@ -175,7 +175,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
     tcp_recved(tpcb, total_data_ackable);
   } else {
     pifus_log("pifus: err in tcp_recv_callback %i\n", err);
-    // TODO: handle somehow?
+    return err;
   }
 
   if (len_data_available > 0) {

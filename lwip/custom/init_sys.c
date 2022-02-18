@@ -59,7 +59,6 @@ static void init_iface(void)
     ip4_addr_set_zero(&ipaddr);
     ip4_addr_set_zero(&netmask);
 
-    // TODO: make configurable
     IP4_ADDR(&ipaddr, 192,168,1,200);
     IP4_ADDR(&gw, 192,168,1,1);
     IP4_ADDR(&netmask, 255,255,255,0);
