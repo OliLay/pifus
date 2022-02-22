@@ -2,7 +2,7 @@
 #define LWIP_PRIO_THREAD_H
 
 #include "pifus_ring_buffer.h"
-#include "tx.h"
+#include "discovery.h"
 #include "utils/futex.h"
 
 void start_prio_thread(struct pifus_internal_operation_ring_buffer *tx_queue,

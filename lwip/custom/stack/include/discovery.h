@@ -1,5 +1,5 @@
-#ifndef LWIP_TX_H
-#define LWIP_TX_H
+#ifndef LWIP_DISCOVERY_H
+#define LWIP_DISCOVERY_H
 
 #include "pifus_constants.h"
 #include "pifus_identifiers.h"
@@ -12,8 +12,8 @@ struct pifus_new_socket_queue {
   futex_t socket_queue_futex;
 };
 
-void *tx_thread_loop(void *arg);
+void *discovery_thread_loop(void *arg);
 
-void start_tx_thread(void);
+void start_discovery_thread(void);
 
 #endif

@@ -1,8 +1,8 @@
-#include "accept.h"
+#include "tcp/accept.h"
 
 /* pifus */
-#include "recv.h"
 #include "stack.h"
+#include "tcp/recv.h"
 #include "utils/log.h"
 
 err_t tcp_accepted_callback(void *arg, struct tcp_pcb *newpcb, err_t err) {

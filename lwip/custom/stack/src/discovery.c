@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#include "tx.h"
+#include "discovery.h"
 
 /* std */
 #include "errno.h"
@@ -23,8 +23,8 @@
 #include "utils/futex.h"
 #include "utils/log.h"
 
-pthread_t tx_thread;
-static struct futex_waitv waitvs[TX_MAX_FUTEXES_PER_THREAD];
+pthread_t discovery_thread;
+static struct futex_waitv waitvs[MAX_APP_AMOUNT];
 /** shadow variables of futexes **/
 futex_t app_futexes[MAX_APP_AMOUNT];
 /** app_local_highest_socket_number[#app] -> highest active socket number */
@@ -198,7 +198,7 @@ void start_prio_threads(void) {
  * @param arg unused
  * @return void* no return value
  */
-void *tx_thread_loop(void *arg) {
+void *discovery_thread_loop(void *arg) {
   start_prio_threads();
 
   while (true) {
@@ -211,7 +211,7 @@ void *tx_thread_loop(void *arg) {
       // TODO: use tv_nsec to allow MSEC constant, needs time arithmetic
       struct timespec timespec;
       clock_gettime(CLOCK_MONOTONIC, &timespec);
-      timespec.tv_sec += TX_WAIT_TIMEOUT_SEC;
+      timespec.tv_sec += DISCOVERY_WAIT_TIMEOUT_SEC;
       timespec.tv_nsec = 0;
 
       int ret_code =
@@ -226,7 +226,7 @@ void *tx_thread_loop(void *arg) {
   }
 }
 
-void start_tx_thread(void) {
+void start_discovery_thread(void) {
   pifus_socket_identifier_queue_create(&high_prio_new_socket_queue.socket_queue,
                                        DISCOVERY_MAX_NEW_SOCKETS);
   pifus_socket_identifier_queue_create(
@@ -234,7 +234,7 @@ void start_tx_thread(void) {
   pifus_socket_identifier_queue_create(&low_prio_new_socket_queue.socket_queue,
                                        DISCOVERY_MAX_NEW_SOCKETS);
 
-  int ret = pthread_create(&tx_thread, NULL, tx_thread_loop, NULL);
+  int ret = pthread_create(&discovery_thread, NULL, discovery_thread_loop, NULL);
 
   if (ret < 0) {
     pifus_log("pifus_discovery: Could not start Discovery thread due to %i!\n",

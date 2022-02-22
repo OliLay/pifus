@@ -19,16 +19,16 @@
 #include "utils/log.h"
 
 /* local includes */
-#include "accept.h"
-#include "bind.h"
-#include "close.h"
-#include "connect.h"
+#include "discovery.h"
 #include "init.h"
-#include "listen.h"
-#include "recv.h"
 #include "stack.h"
-#include "tx.h"
-#include "write.h"
+#include "tcp/accept.h"
+#include "tcp/bind.h"
+#include "tcp/close.h"
+#include "tcp/connect.h"
+#include "tcp/listen.h"
+#include "tcp/recv.h"
+#include "tcp/write.h"
 
 /**
  * app_ptrs[#app] -> ptr to shmem app region
@@ -167,7 +167,7 @@ bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
                 full_sndbuf_iterations);
       struct pifus_internal_operation *recv_op = NULL;
       if (pifus_priority_aware_ring_buffer_find(&tx_queue, &recv_op,
-                                    &is_recv_op)) {
+                                                &is_recv_op)) {
         return handle_operation(recv_op, true, dequeued_ops);
       } else {
         return false;
@@ -216,7 +216,7 @@ void lwip_init_complete(void) {
   pifus_debug_log("pifus: lwip init complete.\n");
 
   pifus_priority_aware_ring_buffer_create(&tx_queue);
-  start_tx_thread();
+  start_discovery_thread();
 }
 
 int main(int argc, char *argv[]) {

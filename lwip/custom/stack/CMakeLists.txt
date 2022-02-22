@@ -12,14 +12,14 @@ include(${LWIP_DIR}/contrib/ports/unix/Filelists.cmake)
 
 add_executable(stack 
                 ${CMAKE_CURRENT_LIST_DIR}/src/stack.c 
-                ${CMAKE_CURRENT_LIST_DIR}/src/tx.c 
-                ${CMAKE_CURRENT_LIST_DIR}/src/bind.c 
-                ${CMAKE_CURRENT_LIST_DIR}/src/connect.c 
-                ${CMAKE_CURRENT_LIST_DIR}/src/write.c 
-                ${CMAKE_CURRENT_LIST_DIR}/src/recv.c 
-                ${CMAKE_CURRENT_LIST_DIR}/src/listen.c
-                ${CMAKE_CURRENT_LIST_DIR}/src/accept.c
-                ${CMAKE_CURRENT_LIST_DIR}/src/close.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/discovery.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/bind.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/connect.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/write.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/recv.c 
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/listen.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/accept.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/tcp/close.c
                 ${CMAKE_CURRENT_LIST_DIR}/src/prio_thread.c
                 ${CMAKE_CURRENT_LIST_DIR}/src/list/linked_list.c
                 ${NEEDED_SOURCES})

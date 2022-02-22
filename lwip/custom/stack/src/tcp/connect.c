@@ -1,4 +1,4 @@
-#include "connect.h"
+#include "tcp/connect.h"
 
 /* pifus */
 #include "stack.h"
