@@ -9,6 +9,7 @@
 #include "pifus_identifiers.h"
 #include "pifus_operation.h"
 #include "pifus_ring_buffer.h"
+#include "pifus_qos.h"
 #include "utils/futex.h"
 
 enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
@@ -19,6 +20,8 @@ enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
 struct pifus_socket {
   enum protocol protocol;
   struct pifus_socket_identifier identifier;
+  // TODO: set priority
+  enum pifus_priority priority;
 
   /* squeue */
   futex_t squeue_futex;

@@ -10,10 +10,12 @@ set (API_SOURCES
     ${API_DIR}/src/pifus_socket.c
     ${API_DIR}/src/pifus_shmem.c
     ${API_DIR}/src/pifus_ring_buffer.c
+    ${API_DIR}/src/pifus_priority_aware_ring_buffer.c
     ${API_DIR}/src/pifus_byte_buffer.c
     ${API_DIR}/src/pifus_operation.c
     ${API_DIR}/src/pifus_identifiers.c
     ${API_DIR}/src/pifus_ip.c
+    ${API_DIR}/src/pifus_qos.c
     ${API_DIR}/src/utils/futex.c
     ${API_DIR}/src/utils/log.c
     )

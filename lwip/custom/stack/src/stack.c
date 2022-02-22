@@ -46,7 +46,7 @@ struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 /**
  * TX operations from all sockets.
  */
-struct pifus_tx_queue tx_queue;
+struct pifus_priority_aware_ring_buffer tx_queue;
 /**
  * How many times the stack iterated with a full SNDBUFFER.
  */
@@ -152,7 +152,7 @@ bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
   struct pifus_operation_result operation_result = process_tx_op(tx_op);
 
   if (operation_result.code == NOP && !recv_scan) {
-    pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
+    pifus_priority_aware_ring_buffer_erase_first(&tx_queue);
     return true;
   }
 
@@ -163,8 +163,7 @@ bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
                 full_sndbuf_iterations);
 
       struct pifus_internal_operation *recv_op = NULL;
-      if (pifus_tx_ring_buffer_find(&tx_queue.ring_buffer,
-                                    tx_queue.tx_queue_buffer, &recv_op,
+      if (pifus_priority_aware_ring_buffer_find(&tx_queue, &recv_op,
                                     &is_recv_op)) {
         return handle_operation(recv_op, true, dequeued_ops);
       } else {
@@ -190,7 +189,7 @@ bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
     tx_op->operation.code = NOP;
   } else {
     full_sndbuf_iterations = 0;
-    pifus_tx_ring_buffer_erase_first(&tx_queue.ring_buffer);
+    pifus_priority_aware_ring_buffer_erase_first(&tx_queue);
     (*dequeued_ops)++;
   }
 
@@ -202,8 +201,7 @@ void lwip_loop_iteration(void) {
 
   struct pifus_internal_operation *tx_op;
   while (dequeued_operations < MAX_DEQUEUES_PER_ITERATION &&
-         pifus_tx_ring_buffer_peek(&tx_queue.ring_buffer,
-                                   tx_queue.tx_queue_buffer, &tx_op)) {
+         pifus_priority_aware_ring_buffer_peek(&tx_queue, &tx_op)) {
 
     if (!handle_operation(tx_op, false, &dequeued_operations)) {
       return;
@@ -214,7 +212,7 @@ void lwip_loop_iteration(void) {
 void lwip_init_complete(void) {
   pifus_debug_log("pifus: lwip init complete.\n");
 
-  pifus_tx_ring_buffer_create(&tx_queue.ring_buffer, TX_QUEUE_SIZE);
+  pifus_priority_aware_ring_buffer_create(&tx_queue);
   start_tx_thread();
 }
 
