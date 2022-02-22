@@ -15,7 +15,8 @@ extern struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
  *
  * @return Pointer to a pifus_socket
  */
-struct pifus_socket *pifus_socket(enum protocol protocol);
+struct pifus_socket *pifus_socket(enum pifus_protocol protocol,
+                                  enum pifus_priority priority);
 
 /**
  * @brief Binds a socket to a certain port and address type (IPv4/6 or any of
@@ -74,13 +75,16 @@ bool pifus_socket_listen(struct pifus_socket *socket, uint8_t backlog_size);
  *
  * @param socket The socket where a connection should be accepted on.
  * grow
+ * @param accepted_sockets_priority What kind of priority the accepted sockets
+ * should have.
  * @return true upon success, false upon error.
  */
-bool pifus_socket_accept(struct pifus_socket *socket);
+bool pifus_socket_accept(struct pifus_socket *socket,
+                         enum pifus_priority accepted_sockets_priority);
 
 /**
- * @brief Close a socket. 
- * NOTE: after this is returned successfully (in cqueue), 
+ * @brief Close a socket.
+ * NOTE: after this is returned successfully (in cqueue),
  * no further operations can be issued on the socket.
  *
  * @param socket The socket that should be closed.
@@ -96,13 +100,12 @@ bool pifus_socket_close(struct pifus_socket *socket);
  * @return true If there was a new result and it was written into the output arg
  * @return false If there was no new result
  */
-bool pifus_socket_pop_result(
-    struct pifus_socket *socket,
-    struct pifus_operation_result *operation_result);
+bool pifus_socket_pop_result(struct pifus_socket *socket,
+                             struct pifus_operation_result *operation_result);
 
 /**
  * @brief Gets the op code of the next result.
- * 
+ *
  * @param socket The socket that the result should belong to.
  * @param code Out: Pointer to a pointer, pointing to opcode on success
  * @return true Success

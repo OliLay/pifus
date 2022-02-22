@@ -1,12 +1,15 @@
 #ifndef LWIP_STACK_H
 #define LWIP_STACK_H
 
-#include "pifus_ring_buffer.h"
 #include "pifus_priority_aware_ring_buffer.h"
+#include "pifus_ring_buffer.h"
+#include "utils/futex.h"
 
 extern struct pifus_app *app_ptrs[MAX_APP_AMOUNT];
 extern struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 extern struct tcp_pcb *socket_tcp_pcbs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+
+extern futex_t socket_futexes[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 
 extern app_index_t next_app_number;
 extern struct pifus_priority_aware_ring_buffer tx_queue;

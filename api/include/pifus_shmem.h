@@ -12,15 +12,14 @@
 #include "pifus_qos.h"
 #include "utils/futex.h"
 
-enum protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
+enum pifus_protocol { PROTOCOL_TCP = 0, PROTOCOL_UDP = 1 };
 
 /**
  * @brief Shmem layout of socket region.
  */
 struct pifus_socket {
-  enum protocol protocol;
+  enum pifus_protocol protocol;
   struct pifus_socket_identifier identifier;
-  // TODO: set priority
   enum pifus_priority priority;
 
   /* squeue */
@@ -45,6 +44,9 @@ struct pifus_socket {
   /* recv buffer */
   struct pifus_byte_buffer recv_buffer;
   uint8_t recv_buffer_array[RECV_BUFFER_SIZE];
+
+  /* accept */
+  enum pifus_priority accepted_sockets_priority;
 
   /* stats (for rate limiting) */
   uint64_t enqueued_ops;

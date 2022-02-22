@@ -20,6 +20,8 @@ add_executable(stack
                 ${CMAKE_CURRENT_LIST_DIR}/src/listen.c
                 ${CMAKE_CURRENT_LIST_DIR}/src/accept.c
                 ${CMAKE_CURRENT_LIST_DIR}/src/close.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/prio_thread.c
+                ${CMAKE_CURRENT_LIST_DIR}/src/list/linked_list.c
                 ${NEEDED_SOURCES})
 
 target_include_directories(stack PRIVATE ${LWIP_INCLUDE_DIRS})

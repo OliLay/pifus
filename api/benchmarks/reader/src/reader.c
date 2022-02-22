@@ -72,8 +72,9 @@ int main(int argc, char *argv[]) {
 
   pifus_initialize(&callback_func);
 
-  struct pifus_socket *to_be_closed_socket = pifus_socket(PROTOCOL_TCP);
-  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
+  struct pifus_socket *to_be_closed_socket =
+      pifus_socket(PROTOCOL_TCP, PRIORITY_HIGH);
+  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP, PRIORITY_HIGH);
 
   pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 11337);
 
@@ -88,7 +89,7 @@ int main(int argc, char *argv[]) {
   pifus_socket_close(to_be_closed_socket);
   pifus_socket_wait(to_be_closed_socket, &operation_result);
 
-  pifus_socket_accept(socket);
+  pifus_socket_accept(socket, PRIORITY_HIGH);
 
   // rest is done via callback :)
   while (true) {

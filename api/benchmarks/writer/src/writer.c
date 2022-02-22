@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 
   pifus_initialize(NULL);
 
-  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP);
+  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP, PRIORITY_MEDIUM);
   pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 50113);
 
   struct pifus_operation_result operation_result;
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   pifus_socket_connect(socket, remote_addr, 11337);
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
-
+  int total_sent = 0;
   while (true) {
     int sent = 0;
     while (sent < 10) {
@@ -45,10 +45,12 @@ int main(int argc, char *argv[]) {
       if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
         printf("Wrote '%s'\n", loop_data);
         sent++;
+        total_sent++;
       }
 
-       free(loop_data);
+      free(loop_data);
     }
+    printf("Total sent: %i\n", total_sent);
 
     while (pifus_socket_pop_result(socket, &operation_result)) {
       print_result(&operation_result);

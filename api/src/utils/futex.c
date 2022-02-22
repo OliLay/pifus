@@ -15,5 +15,5 @@ int futex_wait(uint32_t *uaddr, uint32_t val) {
 }
 
 int futex_wake(uint32_t *uaddr) {
-  return futex(uaddr, FUTEX_WAKE, 1, NULL, NULL, 0);
+  return futex(uaddr, FUTEX_WAKE, INT32_MAX, NULL, NULL, 0);
 }

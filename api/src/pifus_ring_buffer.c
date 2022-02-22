@@ -173,3 +173,4 @@ RING_BUFFER_SOURCE_DEFS(pifus_operation_result_ring_buffer,
 RING_BUFFER_SOURCE_DEFS(pifus_internal_operation_ring_buffer, struct pifus_internal_operation)
 RING_BUFFER_SOURCE_DEFS(pifus_write_queue, struct pifus_write_queue_entry)
 RING_BUFFER_SOURCE_DEFS(pifus_recv_queue, struct pifus_recv_queue_entry)
+RING_BUFFER_SOURCE_DEFS(pifus_socket_identifier_queue, struct pifus_socket_identifier)

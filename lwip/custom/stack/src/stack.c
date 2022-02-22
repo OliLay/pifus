@@ -44,6 +44,10 @@ app_index_t next_app_number = 0;
  */
 struct pifus_socket *socket_ptrs[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
 /**
+ * Socket futex shadows.
+ */
+futex_t socket_futexes[MAX_APP_AMOUNT][MAX_SOCKETS_PER_APP];
+/**
  * TX operations from all sockets.
  */
 struct pifus_priority_aware_ring_buffer tx_queue;
@@ -158,10 +162,9 @@ bool handle_operation(struct pifus_internal_operation *tx_op, bool recv_scan,
 
   if (operation_result.result_code == PIFUS_TRY_AGAIN) {
     if (full_sndbuf_iterations >= MAX_FULL_SND_BUF_ITERATIONS) {
-      pifus_debug_log("Scanning tx_queue for recv ops to prevent deadlock, as SNDBUF "
+      pifus_log("Scanning tx_queue for recv ops to prevent deadlock, as SNDBUF "
                 "was full for %u iterations.\n",
                 full_sndbuf_iterations);
-
       struct pifus_internal_operation *recv_op = NULL;
       if (pifus_priority_aware_ring_buffer_find(&tx_queue, &recv_op,
                                     &is_recv_op)) {

@@ -23,7 +23,8 @@ bool enqueue_operation(struct pifus_socket *socket,
 bool dequeue_operation(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result);
 void free_write_buffers(struct pifus_app *app, uint64_t block_offset);
-struct pifus_socket *pifus_socket_with_tcp_pcb(enum protocol protocol,
+struct pifus_socket *pifus_socket_with_tcp_pcb(enum pifus_protocol protocol,
+                                               enum pifus_priority priority,
                                                void *tcp_pcb);
 void unlink_socket(struct pifus_socket *socket);
 
@@ -60,19 +61,25 @@ bool enqueue_operation(struct pifus_socket *socket,
   }
 
   socket->squeue_futex++;
-  futex_wake(&socket->squeue_futex);
+  int result = futex_wake(&socket->squeue_futex);
+  if (result < 0) {
+    pifus_log("Could not futex_wake! %i\n", result);
+  }
   return true;
 }
 
-struct pifus_socket *pifus_socket(enum protocol protocol) {
-  return pifus_socket_with_tcp_pcb(protocol, NULL);
+struct pifus_socket *pifus_socket(enum pifus_protocol protocol,
+                                  enum pifus_priority priority) {
+  return pifus_socket_with_tcp_pcb(protocol, priority, NULL);
 }
 
-struct pifus_socket *pifus_socket_with_tcp_pcb(enum protocol protocol,
+struct pifus_socket *pifus_socket_with_tcp_pcb(enum pifus_protocol protocol,
+                                               enum pifus_priority priority,
                                                void *tcp_pcb) {
   struct pifus_socket *socket = map_socket_region();
 
   socket->protocol = protocol;
+  socket->priority = priority;
 
   if (tcp_pcb != NULL) {
     pifus_debug_log("pifus: Created new socket with given PCB!\n");
@@ -207,7 +214,8 @@ bool pifus_socket_listen(struct pifus_socket *socket, uint8_t backlog_size) {
   return enqueue_operation(socket, listen_operation);
 }
 
-bool pifus_socket_accept(struct pifus_socket *socket) {
+bool pifus_socket_accept(struct pifus_socket *socket,
+                         enum pifus_priority accepted_sockets_priority) {
   if (is_queue_full(socket)) {
     return false;
   }
@@ -215,6 +223,8 @@ bool pifus_socket_accept(struct pifus_socket *socket) {
   struct pifus_operation accept_operation;
   if (socket->protocol == PROTOCOL_TCP) {
     accept_operation.code = TCP_ACCEPT;
+
+    socket->accepted_sockets_priority = accepted_sockets_priority;
   } else {
     // UDP has no accept
     return false;
@@ -256,7 +266,8 @@ bool dequeue_operation(struct pifus_socket *socket,
     if (operation_result->code == TCP_ACCEPT &&
         operation_result->result_code == PIFUS_OK) {
       operation_result->data.accept.socket = pifus_socket_with_tcp_pcb(
-          PROTOCOL_TCP, operation_result->data.accept.pcb);
+          PROTOCOL_TCP, socket->accepted_sockets_priority,
+          operation_result->data.accept.pcb);
     }
 
     if (operation_result->code == TCP_RECV ||
@@ -286,10 +297,10 @@ bool pifus_socket_pop_result(struct pifus_socket *socket,
 
 bool pifus_socket_peek_result_code(struct pifus_socket *socket,
                                    enum pifus_operation_code **code) {
-  struct pifus_operation_result* result = NULL;
+  struct pifus_operation_result *result = NULL;
   bool success = pifus_operation_result_ring_buffer_peek(
       &socket->cqueue, socket->cqueue_buffer, &result);
-  
+
   if (success) {
     *code = &result->code;
     return true;

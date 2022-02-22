@@ -7,6 +7,7 @@
 
 #include "pifus_identifiers.h"
 #include "pifus_ip.h"
+#include "pifus_qos.h"
 
 #define OPERATIONS                                                             \
   C(TCP_BIND, 0)                                                               \
@@ -99,6 +100,7 @@ struct pifus_operation {
     struct pifus_write_data write;
     struct pifus_recv_data recv;
     struct pifus_listen_data listen;
+    struct pifus_accept_data accept;
   } data;
 };
 
