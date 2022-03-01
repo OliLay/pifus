@@ -13,25 +13,32 @@
 #include "reader.h"
 
 int current_expected_number = 0;
+int current_returned = 0;
+int current_enqueued = 0;
 
 void print_result(struct pifus_operation_result *result) {
   printf("Result returned: opcode %s, result code %u \n",
          operation_str(result->code), result->result_code);
 }
 
+struct pifus_socket *accepted_socket;
+
 void callback_func(struct pifus_socket *socket,
                    enum pifus_operation_code op_code) {
-  printf("Callback %s received from sock %u\n", operation_str(op_code),
-         socket->identifier.socket_index);
+  // printf("Callback %s received from sock %u\n", operation_str(op_code),
+  //       socket->identifier.socket_index);
 
   if (op_code == TCP_RECV) {
+    current_returned++;
+
     struct pifus_operation_result operation_result;
     pifus_socket_pop_result(socket, &operation_result);
 
+    struct pifus_memory_block *block =
+        operation_result.data.recv.memory_block_ptr;
+    char *data = shm_data_get_data_ptr(block);
+
     if (operation_result.result_code == PIFUS_OK) {
-      struct pifus_memory_block *block =
-          operation_result.data.recv.memory_block_ptr;
-      char *data = shm_data_get_data_ptr(block);
       char number = data[block->size - 1] - '0';
 
       fwrite(data, sizeof(char), block->size, stdout);
@@ -45,24 +52,20 @@ void callback_func(struct pifus_socket *socket,
         exit(1);
       }
 
-      shm_data_free(app_state, block);
-
       if (current_expected_number < 9) {
         current_expected_number++;
       } else {
         current_expected_number = 0;
       }
 
-      pifus_socket_recv(socket, 50);
+      shm_data_free(app_state, block);
     }
   } else if (op_code == TCP_ACCEPT) {
     struct pifus_operation_result operation_result;
     pifus_socket_pop_result(socket, &operation_result);
 
     if (operation_result.result_code == PIFUS_OK) {
-      struct pifus_socket *accepted_socket =
-          operation_result.data.accept.socket;
-      pifus_socket_recv(accepted_socket, 50);
+      accepted_socket = operation_result.data.accept.socket;
     }
   }
 }
@@ -91,9 +94,11 @@ int main(int argc, char *argv[]) {
 
   pifus_socket_accept(socket, PRIORITY_HIGH);
 
-  // rest is done via callback :)
   while (true) {
-    sleep(10);
+    if (accepted_socket != NULL && current_enqueued - current_returned < 50) {
+      pifus_socket_recv(accepted_socket, 50);
+      current_enqueued++;
+    }
   }
 
   pifus_exit();

@@ -202,6 +202,12 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
   recv_queue_entry.data_offset = 0;
 
   struct pifus_operation_result operation_result;
+  operation_result.data.recv.recv_block_offset =
+      recv_queue_entry.recv_block_offset;
+  // irrelevant for client side
+  operation_result.data.recv.size = recv_queue_entry.size;
+  // to be set on client side
+  operation_result.data.recv.memory_block_ptr = NULL;
 
   if (!pifus_byte_buffer_is_empty(&socket->recv_buffer)) {
     struct pifus_app *app = app_ptrs[socket->identifier.app_index];
@@ -216,12 +222,6 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
       // filled completely from buffer, can directly return
       operation_result.code = TCP_RECV;
       operation_result.result_code = PIFUS_OK;
-      operation_result.data.recv.recv_block_offset =
-          recv_queue_entry.recv_block_offset;
-      // irrelevant for client side
-      operation_result.data.recv.size = 0;
-      // to be set on client side
-      operation_result.data.recv.memory_block_ptr = NULL;
 
       return operation_result;
     }
@@ -232,12 +232,10 @@ tx_tcp_recv(struct pifus_internal_operation *internal_op) {
     operation_result.result_code = PIFUS_ASYNC;
   } else {
     operation_result.result_code = PIFUS_ERR;
-    pifus_log(
+    pifus_debug_log(
         "pifus: Could not store recv length/offset in recv_queue_buffer as "
         "it is full!\n");
   }
-
-  operation_result.data.recv = internal_op->operation.data.recv;
 
   return operation_result;
 }

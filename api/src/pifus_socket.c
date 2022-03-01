@@ -272,10 +272,8 @@ bool dequeue_operation(struct pifus_socket *socket,
 
     if (operation_result->code == TCP_RECV ||
         operation_result->code == UDP_RECV) {
-      if (operation_result->result_code == PIFUS_OK) {
         operation_result->data.recv.memory_block_ptr = shm_data_get_block_ptr(
             app_state, operation_result->data.recv.recv_block_offset);
-      }
     }
 
     if (operation_result->code == TCP_CLOSE ||

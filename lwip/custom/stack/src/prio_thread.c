@@ -62,7 +62,7 @@ void handle_squeue_change(struct pifus_socket *socket,
 
         signal_tx_interrupt();
       } else {
-        pifus_log("pifus_prio: Could not put() into tx_queue. Is it full?\n");
+        pifus_debug_log("pifus_prio: Could not put() into tx_queue. Is it full?\n");
         return;
       }
     } else {
