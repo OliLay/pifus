@@ -394,7 +394,7 @@ tapif_select(struct netif *netif)
   int ret;
   struct timeval tv;
   struct tapif *tapif;
-  u32_t msecs = sys_timeouts_sleeptime();
+  u32_t msecs = 1;//sys_timeouts_sleeptime();
 
   tapif = (struct tapif *)netif->state;
 
@@ -404,6 +404,7 @@ tapif_select(struct netif *netif)
   FD_ZERO(&fdset);
   FD_SET(tapif->fd, &fdset);
 
+  // TODO: FD from prio thread (1 is enough), to break select(), write 1 byte from prio threads, read 64 byte here
   ret = select(tapif->fd + 1, &fdset, NULL, NULL, &tv);
   if (ret > 0) {
     tapif_input(netif);
