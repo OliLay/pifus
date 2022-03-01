@@ -1,6 +1,8 @@
 #ifndef PIFUS_CONSTANTS_H
 #define PIFUS_CONSTANTS_H
 
+#define PIFUS
+
 /* debug */
 //#define PIFUS_DEBUG
 

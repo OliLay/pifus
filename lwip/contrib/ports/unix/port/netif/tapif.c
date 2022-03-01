@@ -409,15 +409,26 @@ tapif_select(struct netif *netif)
 
   FD_ZERO(&fdset);
   FD_SET(tapif->fd, &fdset);
+  #ifdef PIFUS
   FD_SET(tx_fd, &fdset);
+  #endif
 
+  #ifdef PIFUS
   ret = select(tx_fd + 1, &fdset, NULL, NULL, &tv);
+  #else
+  ret = select(tapif->fd + 1, &fdset, NULL, NULL, &tv);
+  #endif
+  
   if (ret > 0) {
     if (FD_ISSET(tapif->fd, &fdset)) {
       tapif_input(netif);
-    } else {
+    } 
+    
+    #ifdef PIFUS
+    if (FD_ISSET(tx_fd, &fdset)) {
       eventfd_read(tx_fd, NULL);
     }
+    #endif
   }
   return ret;
 }
