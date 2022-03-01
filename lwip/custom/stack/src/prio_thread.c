@@ -16,10 +16,6 @@
 #include "stdlib.h"
 typedef struct pifus_socket *socket_ptr_t;
 
-struct Foo {
-  socket_ptr_t *socket_ptr;
-};
-
 struct prio_thread_arguments {
   struct pifus_internal_operation_ring_buffer *tx_queue;
   struct pifus_internal_operation *tx_queue_buffer;
@@ -63,6 +59,8 @@ void handle_squeue_change(struct pifus_socket *socket,
         socket_futexes[app_index][socket_index]++;
 
         socket->enqueued_ops++;
+
+        signal_tx_interrupt();
       } else {
         pifus_log("pifus_prio: Could not put() into tx_queue. Is it full?\n");
         return;

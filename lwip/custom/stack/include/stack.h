@@ -21,6 +21,11 @@ extern struct pifus_priority_aware_ring_buffer tx_queue;
 void lwip_loop_iteration(void);
 
 /**
+ * Should be called when there are new operations enqueued in the stack. (TX side)
+ */
+void signal_tx_interrupt(void);
+
+/**
  * @brief Called when lwIP stack init is complete.
  */
 void lwip_init_complete(void);

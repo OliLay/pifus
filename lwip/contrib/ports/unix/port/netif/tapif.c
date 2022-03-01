@@ -41,6 +41,7 @@
 #include <sys/time.h>
 #include <sys/uio.h>
 #include <sys/socket.h>
+#include <sys/eventfd.h>
 
 #include "lwip/opt.h"
 
@@ -97,6 +98,11 @@
 #ifndef TAPIF_DEBUG
 #define TAPIF_DEBUG LWIP_DBG_OFF
 #endif
+
+/**
+ * Used for signaling the network driver that there are new operations.
+ */
+int tx_fd;
 
 struct tapif {
   /* Add whatever per-interface state that is needed here. */
@@ -394,7 +400,7 @@ tapif_select(struct netif *netif)
   int ret;
   struct timeval tv;
   struct tapif *tapif;
-  u32_t msecs = 1;//sys_timeouts_sleeptime();
+  u32_t msecs = sys_timeouts_sleeptime();
 
   tapif = (struct tapif *)netif->state;
 
@@ -403,11 +409,15 @@ tapif_select(struct netif *netif)
 
   FD_ZERO(&fdset);
   FD_SET(tapif->fd, &fdset);
+  FD_SET(tx_fd, &fdset);
 
-  // TODO: FD from prio thread (1 is enough), to break select(), write 1 byte from prio threads, read 64 byte here
-  ret = select(tapif->fd + 1, &fdset, NULL, NULL, &tv);
+  ret = select(tx_fd + 1, &fdset, NULL, NULL, &tv);
   if (ret > 0) {
-    tapif_input(netif);
+    if (FD_ISSET(tapif->fd, &fdset)) {
+      tapif_input(netif);
+    } else {
+      eventfd_read(tx_fd, NULL);
+    }
   }
   return ret;
 }

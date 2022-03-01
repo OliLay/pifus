@@ -2,6 +2,7 @@
 #include "errno.h"
 #include "stdio.h"
 #include "string.h"
+#include "sys/eventfd.h"
 
 /* lwIP includes */
 #include "lwip/debug.h"
@@ -12,6 +13,7 @@
 #include "lwip/sys.h"
 #include "lwip/tcp.h"
 #include "lwip/timeouts.h"
+#include "netif/tapif.h"
 
 /* pifus */
 #include "pifus_shmem.h"
@@ -215,6 +217,8 @@ void lwip_loop_iteration(void) {
 void lwip_init_complete(void) {
   pifus_debug_log("pifus: lwip init complete.\n");
 
+  tx_fd = eventfd(0, EFD_NONBLOCK);
+
   pifus_priority_aware_ring_buffer_create(&tx_queue);
   start_discovery_thread();
 }
@@ -229,4 +233,8 @@ int main(int argc, char *argv[]) {
            "192.168.1.1", "255.255.255.0");
 
   return 0;
+}
+
+void signal_tx_interrupt(void) {
+  eventfd_write(tx_fd, 1);
 }
