@@ -23,7 +23,7 @@
 
 /* socket */
 #define SQUEUE_SIZE 10
-#define CQUEUE_SIZE 20
+#define CQUEUE_SIZE 100
 #define WRITE_QUEUE_SIZE 100
 #define RECV_QUEUE_SIZE 100
 #define RECV_BUFFER_SIZE 2048

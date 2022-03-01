@@ -235,6 +235,4 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void signal_tx_interrupt(void) {
-  eventfd_write(tx_fd, 1);
-}
+void signal_tx_interrupt(void) { eventfd_write(tx_fd, 1); }
