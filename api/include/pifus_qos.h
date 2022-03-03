@@ -7,4 +7,8 @@ enum pifus_priority {
     PRIORITY_HIGH = 2,
 };
 
+const char* prio_str(enum pifus_priority prio);
+
+enum pifus_priority str_to_prio(char *str);
+
 #endif

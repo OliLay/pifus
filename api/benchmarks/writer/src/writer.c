@@ -17,20 +17,58 @@ void print_result(struct pifus_operation_result *result) {
          operation_str(result->code), result->result_code);
 }
 
+void parse_args(int argc, char *argv[], char **reader_ip, uint16_t *port,
+                enum pifus_priority *prio) {
+  if (argc < 3) {
+    printf("At least IP and port are required!\n");
+    exit(1);
+  }
+
+  int opt;
+  while ((opt = getopt(argc, argv, "i:p:l:")) != -1) {
+    switch (opt) {
+    case 'p':
+      *port = atoi(optarg);
+      break;
+    case 'l':
+      *prio = str_to_prio(optarg);
+      break;
+    default:
+      fprintf(stderr, "Usage: %s [-pl] [IP]\n", argv[0]);
+      exit(1);
+    }
+  }
+
+  if (port == 0) {
+    printf("Port is required!\n");
+    exit(1);
+  }
+
+  *reader_ip = argv[optind];
+
+  printf("Using reader IP '%s:%u' and prio '%s'\n", *reader_ip, *port,
+         prio_str(*prio));
+}
+
 int main(int argc, char *argv[]) {
   printf("Starting pifus_writer...\n");
 
+  char *reader_ip;
+  uint16_t port;
+  enum pifus_priority prio = PRIORITY_MEDIUM;
+  parse_args(argc, argv, &reader_ip, &port, &prio);
+
   pifus_initialize(NULL);
 
-  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP, PRIORITY_MEDIUM);
-  pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 50113);
+  struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP, prio);
+  pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 0);
 
   struct pifus_operation_result operation_result;
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
   struct pifus_ip_addr remote_addr;
-  ip_addr_from_string("192.168.1.201", &remote_addr);
+  ip_addr_from_string(reader_ip, &remote_addr);
   pifus_socket_connect(socket, remote_addr, 11337);
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
