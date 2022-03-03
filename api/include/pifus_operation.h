@@ -60,6 +60,7 @@ struct pifus_recv_data {
   size_t size;
   /* ptr only valid on client side */
   void *memory_block_ptr;
+  void *data_block_ptr;
 };
 
 /**

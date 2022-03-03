@@ -272,8 +272,11 @@ bool dequeue_operation(struct pifus_socket *socket,
 
     if (operation_result->code == TCP_RECV ||
         operation_result->code == UDP_RECV) {
-        operation_result->data.recv.memory_block_ptr = shm_data_get_block_ptr(
-            app_state, operation_result->data.recv.recv_block_offset);
+      struct pifus_memory_block *block = shm_data_get_block_ptr(
+          app_state, operation_result->data.recv.recv_block_offset);
+      operation_result->data.recv.memory_block_ptr = block;
+      operation_result->data.recv.data_block_ptr = shm_data_get_data_ptr(block);
+      operation_result->data.recv.size = block->size;
     }
 
     if (operation_result->code == TCP_CLOSE ||
@@ -354,4 +357,9 @@ void pifus_socket_exit_all(void) {
       free(socket_shm_name);
     }
   }
+}
+
+void pifus_free(struct pifus_operation_result *operation_result) {
+  shm_data_free(app_state, (struct pifus_memory_block *)
+                               operation_result->data.recv.memory_block_ptr);
 }

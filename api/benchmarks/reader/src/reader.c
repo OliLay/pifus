@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 /* local includes */
 #include "pifus.h"
@@ -16,6 +17,8 @@ int current_expected_number = 0;
 int current_returned = 0;
 int current_enqueued = 0;
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void print_result(struct pifus_operation_result *result) {
   printf("Result returned: opcode %s, result code %u \n",
          operation_str(result->code), result->result_code);
@@ -25,23 +28,18 @@ struct pifus_socket *accepted_socket;
 
 void callback_func(struct pifus_socket *socket,
                    enum pifus_operation_code op_code) {
-  // printf("Callback %s received from sock %u\n", operation_str(op_code),
-  //       socket->identifier.socket_index);
-
   if (op_code == TCP_RECV) {
     current_returned++;
 
     struct pifus_operation_result operation_result;
     pifus_socket_pop_result(socket, &operation_result);
 
-    struct pifus_memory_block *block =
-        operation_result.data.recv.memory_block_ptr;
-    char *data = shm_data_get_data_ptr(block);
-
+    char *data = operation_result.data.recv.data_block_ptr;
+    size_t data_size = operation_result.data.recv.size;
     if (operation_result.result_code == PIFUS_OK) {
-      char number = data[block->size - 1] - '0';
+      char number = data[data_size - 1] - '0';
 
-      fwrite(data, sizeof(char), block->size, stdout);
+      fwrite(data, sizeof(char), data_size, stdout);
       printf("\n");
 
       if (number != current_expected_number) {
@@ -57,8 +55,9 @@ void callback_func(struct pifus_socket *socket,
       } else {
         current_expected_number = 0;
       }
-
-      shm_data_free(app_state, block);
+      pthread_mutex_lock(&mutex);
+      pifus_free(&operation_result);
+      pthread_mutex_unlock(&mutex);
     }
   } else if (op_code == TCP_ACCEPT) {
     struct pifus_operation_result operation_result;
@@ -96,7 +95,9 @@ int main(int argc, char *argv[]) {
 
   while (true) {
     if (accepted_socket != NULL && current_enqueued - current_returned < 50) {
+      pthread_mutex_lock(&mutex);
       pifus_socket_recv(accepted_socket, 50);
+      pthread_mutex_unlock(&mutex);
       current_enqueued++;
     }
   }
