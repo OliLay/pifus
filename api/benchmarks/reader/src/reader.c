@@ -13,9 +13,9 @@
 #include "pifus_socket.h"
 #include "reader.h"
 
-int current_expected_number = 0;
-int current_returned = 0;
-int current_enqueued = 0;
+volatile int current_expected_number = 0;
+volatile int current_returned = 0;
+volatile int current_enqueued = 0;
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -24,7 +24,7 @@ void print_result(struct pifus_operation_result *result) {
          operation_str(result->code), result->result_code);
 }
 
-struct pifus_socket *accepted_socket;
+struct pifus_socket * volatile accepted_socket;
 
 void callback_func(struct pifus_socket *socket,
                    enum pifus_operation_code op_code) {
