@@ -138,10 +138,12 @@ low_level_init(struct netif *netif)
   netif->hwaddr[2] = 0x34;
   netif->hwaddr[3] = 0x56;
   netif->hwaddr[4] = 0x78;
-  if (preconfigured_tapif != NULL && strcmp(preconfigured_tapif, "tap0") == 0) {
-    netif->hwaddr[5] = 0xab;
+
+  if (preconfigured_tapif != NULL) {
+    int tap_index = atoi(&preconfigured_tapif[strlen(preconfigured_tapif) - 1]);
+    netif->hwaddr[5] = tap_index;
   } else {
-    netif->hwaddr[5] = 0xac;
+    netif->hwaddr[5] = 0x99;
   } 
 
   netif->hwaddr_len = 6;
