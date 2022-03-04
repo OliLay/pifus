@@ -217,6 +217,7 @@ void lwip_loop_iteration(void) {
 void lwip_init_complete(void) {
   pifus_debug_log("pifus: lwip init complete.\n");
 
+  pifus = true;
   tx_fd = eventfd(0, EFD_NONBLOCK);
 
   pifus_priority_aware_ring_buffer_create(&tx_queue);
@@ -229,7 +230,7 @@ int main(int argc, char *argv[]) {
 
   pifus_log("pifus: Starting up...\n");
 
-  run_lwip(&lwip_init_complete, &lwip_loop_iteration, "192.168.1.201",
+  run_lwip(&lwip_init_complete, &lwip_loop_iteration, "192.168.1.200",
            "192.168.1.1", "255.255.255.0");
 
   return 0;

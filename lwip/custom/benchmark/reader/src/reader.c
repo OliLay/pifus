@@ -102,7 +102,12 @@ int main(int argc, char *argv[]) {
   LWIP_UNUSED_ARG(argc);
   LWIP_UNUSED_ARG(argv);
 
-  run_lwip(&reader_init, NULL, "192.168.1.200", "192.168.1.1", "255.255.255.0");
+  char* ip = "192.168.1.200";
+  if (argc > 1) {
+    ip = argv[1];
+  }
+
+  run_lwip(&reader_init, NULL, ip, "192.168.1.1", "255.255.255.0");
 
   return 0;
 }

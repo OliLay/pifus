@@ -2,8 +2,8 @@
  * Copyright (c) 2001-2003 Swedish Institute of Computer Science.
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
  * 1. Redistributions of source code must retain the above copyright notice,
  *    this list of conditions and the following disclaimer.
@@ -15,14 +15,14 @@
  *
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
- * SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
- * OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This file is part of the lwIP TCP/IP stack.
  *
@@ -31,40 +31,40 @@
  */
 
 #include <fcntl.h>
-#include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/eventfd.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <sys/time.h>
+#include <sys/types.h>
 #include <sys/uio.h>
-#include <sys/socket.h>
-#include <sys/eventfd.h>
+#include <unistd.h>
 
 #include "lwip/opt.h"
 
 #include "lwip/debug.h"
 #include "lwip/def.h"
+#include "lwip/ethip6.h"
 #include "lwip/ip.h"
 #include "lwip/mem.h"
-#include "lwip/stats.h"
-#include "lwip/snmp.h"
 #include "lwip/pbuf.h"
+#include "lwip/snmp.h"
+#include "lwip/stats.h"
 #include "lwip/sys.h"
 #include "lwip/timeouts.h"
 #include "netif/etharp.h"
-#include "lwip/ethip6.h"
 
 #include "netif/tapif.h"
 
 #define IFCONFIG_BIN "/sbin/ifconfig "
 
 #if defined(LWIP_UNIX_LINUX)
-#include <sys/ioctl.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <sys/ioctl.h>
 /*
  * Creating a tap interface requires special privileges. If the interfaces
  * is created in advance with `tunctl -u <user>` it can be opened as a regular
@@ -99,6 +99,7 @@
 #define TAPIF_DEBUG LWIP_DBG_OFF
 #endif
 
+bool pifus = false;
 /**
  * Used for signaling the network driver that there are new operations.
  */
@@ -116,9 +117,7 @@ static void tapif_thread(void *arg);
 #endif /* !NO_SYS */
 
 /*-----------------------------------------------------------------------------------*/
-static void
-low_level_init(struct netif *netif)
-{
+static void low_level_init(struct netif *netif) {
   struct tapif *tapif;
 #if LWIP_IPV4
   int ret;
@@ -144,7 +143,7 @@ low_level_init(struct netif *netif)
     netif->hwaddr[5] = tap_index;
   } else {
     netif->hwaddr[5] = 0x99;
-  } 
+  }
 
   netif->hwaddr_len = 6;
 
@@ -155,9 +154,10 @@ low_level_init(struct netif *netif)
   LWIP_DEBUGF(TAPIF_DEBUG, ("tapif_init: fd %d\n", tapif->fd));
   if (tapif->fd == -1) {
 #ifdef LWIP_UNIX_LINUX
-    perror("tapif_init: try running \"modprobe tun\" or rebuilding your kernel with CONFIG_TUN; cannot open "DEVTAP);
-#else /* LWIP_UNIX_LINUX */
-    perror("tapif_init: cannot open "DEVTAP);
+    perror("tapif_init: try running \"modprobe tun\" or rebuilding your kernel "
+           "with CONFIG_TUN; cannot open " DEVTAP);
+#else  /* LWIP_UNIX_LINUX */
+    perror("tapif_init: cannot open " DEVTAP);
 #endif /* LWIP_UNIX_LINUX */
     exit(1);
   }
@@ -172,11 +172,11 @@ low_level_init(struct netif *netif)
     } else {
       strncpy(ifr.ifr_name, DEVTAP_DEFAULT_IF, sizeof(ifr.ifr_name));
     }
-    ifr.ifr_name[sizeof(ifr.ifr_name)-1] = 0; /* ensure \0 termination */
+    ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = 0; /* ensure \0 termination */
 
-    ifr.ifr_flags = IFF_TAP|IFF_NO_PI;
-    if (ioctl(tapif->fd, TUNSETIFF, (void *) &ifr) < 0) {
-      perror("tapif_init: "DEVTAP" ioctl TUNSETIFF");
+    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    if (ioctl(tapif->fd, TUNSETIFF, (void *)&ifr) < 0) {
+      perror("tapif_init: " DEVTAP " ioctl TUNSETIFF");
       exit(1);
     }
   }
@@ -187,18 +187,16 @@ low_level_init(struct netif *netif)
   if (preconfigured_tapif == NULL) {
 #if LWIP_IPV4
     snprintf(buf, 1024, IFCONFIG_BIN IFCONFIG_ARGS,
-             ip4_addr1(netif_ip4_gw(netif)),
-             ip4_addr2(netif_ip4_gw(netif)),
-             ip4_addr3(netif_ip4_gw(netif)),
-             ip4_addr4(netif_ip4_gw(netif))
+             ip4_addr1(netif_ip4_gw(netif)), ip4_addr2(netif_ip4_gw(netif)),
+             ip4_addr3(netif_ip4_gw(netif)), ip4_addr4(netif_ip4_gw(netif))
 #ifdef NETMASK_ARGS
-             ,
+                                                 ,
              ip4_addr1(netif_ip4_netmask(netif)),
              ip4_addr2(netif_ip4_netmask(netif)),
              ip4_addr3(netif_ip4_netmask(netif)),
              ip4_addr4(netif_ip4_netmask(netif))
 #endif /* NETMASK_ARGS */
-             );
+    );
 
     LWIP_DEBUGF(TAPIF_DEBUG, ("tapif_init: system(\"%s\");\n", buf));
     ret = system(buf);
@@ -209,14 +207,15 @@ low_level_init(struct netif *netif)
     if (ret != 0) {
       printf("ifconfig returned %d\n", ret);
     }
-#else /* LWIP_IPV4 */
+#else  /* LWIP_IPV4 */
     perror("todo: support IPv6 support for non-preconfigured tapif");
     exit(1);
 #endif /* LWIP_IPV4 */
   }
 
 #if !NO_SYS
-  sys_thread_new("tapif_thread", tapif_thread, netif, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
+  sys_thread_new("tapif_thread", tapif_thread, netif, DEFAULT_THREAD_STACKSIZE,
+                 DEFAULT_THREAD_PRIO);
 #endif /* !NO_SYS */
 }
 /*-----------------------------------------------------------------------------------*/
@@ -230,9 +229,7 @@ low_level_init(struct netif *netif)
  */
 /*-----------------------------------------------------------------------------------*/
 
-static err_t
-low_level_output(struct netif *netif, struct pbuf *p)
-{
+static err_t low_level_output(struct netif *netif, struct pbuf *p) {
   struct tapif *tapif = (struct tapif *)netif->state;
   char buf[1518]; /* max packet size including VLAN excluding CRC */
   ssize_t written;
@@ -273,9 +270,7 @@ low_level_output(struct netif *netif, struct pbuf *p)
  *
  */
 /*-----------------------------------------------------------------------------------*/
-static struct pbuf *
-low_level_input(struct netif *netif)
-{
+static struct pbuf *low_level_input(struct netif *netif) {
   struct pbuf *p;
   u16_t len;
   ssize_t readlen;
@@ -325,9 +320,7 @@ low_level_input(struct netif *netif)
  *
  */
 /*-----------------------------------------------------------------------------------*/
-static void
-tapif_input(struct netif *netif)
-{
+static void tapif_input(struct netif *netif) {
   struct pbuf *p = low_level_input(netif);
 
   if (p == NULL) {
@@ -353,9 +346,7 @@ tapif_input(struct netif *netif)
  *
  */
 /*-----------------------------------------------------------------------------------*/
-err_t
-tapif_init(struct netif *netif)
-{
+err_t tapif_init(struct netif *netif) {
   struct tapif *tapif = (struct tapif *)mem_malloc(sizeof(struct tapif));
 
   if (tapif == NULL) {
@@ -381,23 +372,18 @@ tapif_init(struct netif *netif)
   return ERR_OK;
 }
 
-
 /*-----------------------------------------------------------------------------------*/
-void
-tapif_poll(struct netif *netif)
-{
-  #if NO_SYS
+void tapif_poll(struct netif *netif) {
+#if NO_SYS
   tapif_select(netif);
-  #else
+#else
   tapif_input(netif);
-  #endif
+#endif
 }
 
 #if NO_SYS
 
-int
-tapif_select(struct netif *netif)
-{
+int tapif_select(struct netif *netif) {
   fd_set fdset;
   int ret;
   struct timeval tv;
@@ -411,35 +397,31 @@ tapif_select(struct netif *netif)
 
   FD_ZERO(&fdset);
   FD_SET(tapif->fd, &fdset);
-  #ifdef PIFUS
-  FD_SET(tx_fd, &fdset);
-  #endif
+  if (pifus) {
+    FD_SET(tx_fd, &fdset);
+  }
 
-  #ifdef PIFUS
-  ret = select(tx_fd + 1, &fdset, NULL, NULL, &tv);
-  #else
-  ret = select(tapif->fd + 1, &fdset, NULL, NULL, &tv);
-  #endif
-  
+  if (pifus) {
+    ret = select(tx_fd + 1, &fdset, NULL, NULL, &tv);
+  } else {
+    ret = select(tapif->fd + 1, &fdset, NULL, NULL, &tv);
+  }
+
   if (ret > 0) {
     if (FD_ISSET(tapif->fd, &fdset)) {
       tapif_input(netif);
-    } 
-    
-    #ifdef PIFUS
-    if (FD_ISSET(tx_fd, &fdset)) {
+    }
+
+    if (pifus && FD_ISSET(tx_fd, &fdset)) {
       eventfd_read(tx_fd, NULL);
     }
-    #endif
   }
   return ret;
 }
 
 #else /* NO_SYS */
 
-static void
-tapif_thread(void *arg)
-{
+static void tapif_thread(void *arg) {
   struct netif *netif;
   struct tapif *tapif;
   fd_set fdset;
@@ -448,17 +430,17 @@ tapif_thread(void *arg)
   netif = (struct netif *)arg;
   tapif = (struct tapif *)netif->state;
 
-  while(1) {
+  while (1) {
     FD_ZERO(&fdset);
     FD_SET(tapif->fd, &fdset);
 
     /* Wait for a packet to arrive. */
     ret = select(tapif->fd + 1, &fdset, NULL, NULL, NULL);
 
-    if(ret == 1) {
+    if (ret == 1) {
       /* Handle incoming packet. */
       tapif_input(netif);
-    } else if(ret == -1) {
+    } else if (ret == -1) {
       perror("tapif_thread: select");
     }
   }

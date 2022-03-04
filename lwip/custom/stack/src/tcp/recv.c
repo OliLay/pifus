@@ -30,6 +30,13 @@ uint16_t pop_from_buffer(struct pifus_socket *socket,
 err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
                         err_t err) {
   struct pifus_socket *socket = arg;
+
+  if (socket == NULL) {
+    pifus_log("pifus: Error, no socket associated to recv() call. Can happen "
+              "with fast accept() and then immediate write().\n");
+    return ERR_MEM;
+  }
+
   pifus_debug_log("pifus: tcp_recv_callback called for (%u/%u)!\n",
                   socket->identifier.app_index,
                   socket->identifier.socket_index);

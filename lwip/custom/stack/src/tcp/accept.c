@@ -21,6 +21,7 @@ err_t tcp_accepted_callback(void *arg, struct tcp_pcb *newpcb, err_t err) {
   // set the recv_callback here already, so that the user
   // does not have to call recv() manually to buffer data
   tcp_recv(newpcb, &tcp_recv_callback);
+  tcp_arg(newpcb, NULL);
 
   enqueue_in_cqueue(socket, &operation_result);
 

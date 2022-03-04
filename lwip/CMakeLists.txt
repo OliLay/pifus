@@ -8,7 +8,6 @@ set(LWIP_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 set (LWIP_DEFINITIONS LWIP_DEBUG=1)
 
-#add_subdirectory(${LWIP_DIR}/contrib/ports/unix/example_app)
 add_subdirectory(${LWIP_DIR}/custom)
 
 # Source package generation

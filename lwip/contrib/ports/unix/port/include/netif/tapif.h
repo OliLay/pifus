@@ -33,7 +33,9 @@
 #define LWIP_TAPIF_H
 
 #include "lwip/netif.h"
+#include <stdbool.h>
 
+extern bool pifus;
 extern int tx_fd;
 
 err_t tapif_init(struct netif *netif);

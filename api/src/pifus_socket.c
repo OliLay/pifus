@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 /* std includes */
+#include "pthread.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +28,33 @@ struct pifus_socket *pifus_socket_with_tcp_pcb(enum pifus_protocol protocol,
                                                enum pifus_priority priority,
                                                void *tcp_pcb);
 void unlink_socket(struct pifus_socket *socket);
+bool p_alloc(struct pifus_app *app, size_t size, block_offset_t *ptr_offset,
+             struct pifus_memory_block **block);
+void p_free(struct pifus_app *app, struct pifus_memory_block *block);
+
+pthread_mutex_t alloc_free_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+bool p_alloc(struct pifus_app *app, size_t size, block_offset_t *ptr_offset,
+             struct pifus_memory_block **block) {
+  if (callback != NULL) {
+    pthread_mutex_lock(&alloc_free_mutex);
+  }
+  bool ret = shm_data_allocate(app, size, ptr_offset, block);
+  if (callback != NULL) {
+    pthread_mutex_unlock(&alloc_free_mutex);
+  }
+  return ret;
+}
+
+void p_free(struct pifus_app *app, struct pifus_memory_block *block) {
+  if (callback != NULL) {
+    pthread_mutex_lock(&alloc_free_mutex);
+  }
+  shm_data_free(app, block);
+  if (callback != NULL) {
+    pthread_mutex_unlock(&alloc_free_mutex);
+  }
+}
 
 bool is_queue_full(struct pifus_socket *socket) {
   return pifus_operation_ring_buffer_is_full(&socket->squeue);
@@ -153,7 +181,7 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
   block_offset_t block_offset;
   struct pifus_memory_block *block = NULL;
 
-  if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
+  if (!p_alloc(app_state, size, &block_offset, &block)) {
     pifus_log("pifus: Could not allocate memory for write()!\n");
     return false;
   }
@@ -167,7 +195,7 @@ bool pifus_socket_write(struct pifus_socket *socket, void *data, size_t size) {
 
 void free_write_buffers(struct pifus_app *app, uint64_t block_offset) {
   struct pifus_memory_block *block = shm_data_get_block_ptr(app, block_offset);
-  shm_data_free(app, block);
+  p_free(app, block);
 }
 
 bool pifus_socket_recv(struct pifus_socket *socket, size_t size) {
@@ -185,7 +213,7 @@ bool pifus_socket_recv(struct pifus_socket *socket, size_t size) {
   block_offset_t block_offset;
   struct pifus_memory_block *block = NULL;
 
-  if (!shm_data_allocate(app_state, size, &block_offset, &block)) {
+  if (!p_alloc(app_state, size, &block_offset, &block)) {
     pifus_log("pifus: Could not allocate memory for recv()!\n");
     return false;
   }
@@ -360,6 +388,6 @@ void pifus_socket_exit_all(void) {
 }
 
 void pifus_free(struct pifus_operation_result *operation_result) {
-  shm_data_free(app_state, (struct pifus_memory_block *)
-                               operation_result->data.recv.memory_block_ptr);
+  p_free(app_state, (struct pifus_memory_block *)
+                        operation_result->data.recv.memory_block_ptr);
 }

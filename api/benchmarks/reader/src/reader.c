@@ -17,8 +17,6 @@ volatile int current_expected_number = 0;
 volatile int current_returned = 0;
 volatile int current_enqueued = 0;
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
 void print_result(struct pifus_operation_result *result) {
   printf("Result returned: opcode %s, result code %u \n",
          operation_str(result->code), result->result_code);
@@ -55,9 +53,7 @@ void callback_func(struct pifus_socket *socket,
       } else {
         current_expected_number = 0;
       }
-      pthread_mutex_lock(&mutex);
       pifus_free(&operation_result);
-      pthread_mutex_unlock(&mutex);
     }
   } else if (op_code == TCP_ACCEPT) {
     struct pifus_operation_result operation_result;
@@ -95,9 +91,7 @@ int main(int argc, char *argv[]) {
 
   while (true) {
     if (accepted_socket != NULL && current_enqueued - current_returned < 50) {
-      pthread_mutex_lock(&mutex);
       pifus_socket_recv(accepted_socket, 50);
-      pthread_mutex_unlock(&mutex);
       current_enqueued++;
     }
   }

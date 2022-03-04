@@ -36,6 +36,7 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
     }
 
     tcp_sent(pcb, &tcp_sent_callback);
+    tcp_output(pcb);// TODO: maybe batch per PCB? (higher throughput but less RT)
   } else {
     if (result == ERR_MEM) {
       operation_result.result_code = PIFUS_TRY_AGAIN;
