@@ -127,7 +127,7 @@ void pifus_socket_wait(struct pifus_socket *socket,
 /**
  * @brief Frees the data belonging to the operation result.
  *
- * NOTE: not thread-safe with any other method that allocates (e.g. recv()) or
+ * NOTE: not thread-safe with any other method that allocates (e.g. recv(), write()) or
  * frees memory.
  */
 void pifus_free(struct pifus_operation_result *operation_result);

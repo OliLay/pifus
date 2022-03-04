@@ -50,8 +50,11 @@ void map_new_sockets(app_index_t app_index) {
     char *shm_name;
     for (socket_index_t socket_index = current_highest_index + 1;
          socket_index <= app_highest_index; socket_index++) {
-      asprintf(&shm_name, "%s%u%s%u", SHM_APP_NAME_PREFIX, app_index,
-               SHM_SOCKET_NAME_PREFIX, socket_index);
+      if (!asprintf(&shm_name, "%s%u%s%u", SHM_APP_NAME_PREFIX, app_index,
+                    SHM_SOCKET_NAME_PREFIX, socket_index)) {
+        pifus_log("Could not allocate string for socket mapping!\n");
+        exit(1);
+      }
 
       int fd = shm_open_region(shm_name, false);
 
@@ -119,7 +122,11 @@ void scan_for_app_regions(void) {
   char *app_shm_name = NULL;
 
   for (app_index_t i = next_app_number; i < MAX_APP_AMOUNT; i++) {
-    asprintf(&app_shm_name, "%s%u", SHM_APP_NAME_PREFIX, next_app_number);
+    if (!asprintf(&app_shm_name, "%s%u", SHM_APP_NAME_PREFIX,
+                  next_app_number)) {
+      pifus_log("Could not allocate string for app region scan!\n");
+      exit(1);
+    }
 
     int fd = shm_open_region(app_shm_name, false);
 
@@ -234,12 +241,13 @@ void start_discovery_thread(void) {
   pifus_socket_identifier_queue_create(&low_prio_new_socket_queue.socket_queue,
                                        DISCOVERY_MAX_NEW_SOCKETS);
 
-  int ret = pthread_create(&discovery_thread, NULL, discovery_thread_loop, NULL);
+  int ret =
+      pthread_create(&discovery_thread, NULL, discovery_thread_loop, NULL);
 
   if (ret < 0) {
-    pifus_log("pifus_discovery: Could not start Discovery thread due to %i!\n",
+    pifus_log("pifus_discovery: Could not start discovery thread due to %i!\n",
               errno);
   } else {
-    pifus_log("pifus_discovery: Started Discovery thread!\n");
+    pifus_log("pifus_discovery: Started discovery thread!\n");
   }
 }

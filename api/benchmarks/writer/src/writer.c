@@ -69,16 +69,20 @@ int main(int argc, char *argv[]) {
 
   struct pifus_ip_addr remote_addr;
   ip_addr_from_string(reader_ip, &remote_addr);
-  pifus_socket_connect(socket, remote_addr, 11337);
+  pifus_socket_connect(socket, remote_addr, port);
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
-  int total_sent = 0;
+  
+  size_t total_sent = 0;
   while (true) {
     int sent = 0;
     while (sent < 10) {
       char *loop_data;
-      asprintf(&loop_data,
-               "Predictable interface for a user space IP stack!#%i", sent);
+      if (!asprintf(&loop_data,
+                    "Predictable interface for a user space IP stack!#%i",
+                    sent)) {
+        exit(1);
+      }
 
       if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
         printf("Wrote '%s'\n", loop_data);
@@ -88,7 +92,7 @@ int main(int argc, char *argv[]) {
 
       free(loop_data);
     }
-    printf("Total sent: %i\n", total_sent);
+    printf("Total sent: %lu\n", total_sent);
 
     while (pifus_socket_pop_result(socket, &operation_result)) {
       print_result(&operation_result);
