@@ -1,3 +1,4 @@
+import readline
 import subprocess
 import os
 import glob
@@ -31,6 +32,19 @@ def start_process(path: str, args: str = "", tapif: Optional[int] = None) -> sub
     proc = subprocess.Popen(cmd, env=env)
     _running_processes.append(proc)
     return proc
+
+def compute_latency_from_stamps(first_file_path: str, second_file_path: str) -> List[int]:
+    latencies = []
+    with open(first_file_path) as first_file:
+        with open(second_file_path) as second_file:
+            for line in second_file:
+               # if line.isdigit():
+                first = int(first_file.readline())
+                second = int(line)
+                latencies.append(second - first)
+
+    return latencies
+
 
 def kill_all_processes():
     for proc in _running_processes:

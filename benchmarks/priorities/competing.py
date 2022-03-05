@@ -18,8 +18,10 @@ def start_measurement():
     #framework.start_process(pifus_writer_path, args="192.168.1.203 -p 11337 -l LOW")
 
     time.sleep(3)
+    framework.kill_all_processes()
+
+    print(framework.compute_latency_from_stamps("write.csv", "written.csv"))
 
     # TODO: parse write and written and compute latency and check if legit
 
-    framework.kill_all_processes()
 
