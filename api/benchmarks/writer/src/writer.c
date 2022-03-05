@@ -14,8 +14,8 @@
 #include "writer.h"
 
 void print_result(struct pifus_operation_result *result) {
-  printf("Result returned: opcode %s, result code %u \n",
-         operation_str(result->code), result->result_code);
+  //printf("Result returned: opcode %s, result code %u \n",
+  //       operation_str(result->code), result->result_code);
 }
 
 void parse_args(int argc, char *argv[], char **reader_ip, uint16_t *port,
@@ -62,8 +62,8 @@ void callback_func(struct pifus_socket *socket,
   if (op_code == TCP_WRITE) {
     struct timeval tp;
     gettimeofday(&tp, NULL);
-    long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-    write_csv("written.csv", ms);
+    long int us = tp.tv_sec * 1000000 + tp.tv_usec;
+    write_csv("written.csv", us);
 
     struct pifus_operation_result result;
     pifus_socket_pop_result(socket, &result);
@@ -94,8 +94,6 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  //sleep(1);
-
   size_t total_sent = 0;
   struct timeval tp;
   while (true) {
@@ -110,16 +108,16 @@ int main(int argc, char *argv[]) {
 
       gettimeofday(&tp, NULL);
       if (pifus_socket_write(socket, loop_data, strlen(loop_data))) {
-        printf("Wrote '%s'\n", loop_data);
+        //printf("Wrote '%s'\n", loop_data);
         sent++;
         total_sent++;
-        long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-        write_csv("write.csv", ms);
+        long int us = tp.tv_sec * 1000000 + tp.tv_usec;
+        write_csv("write.csv", us);
       }
 
       free(loop_data);
     }
-    printf("Total sent: %lu\n", total_sent);
+    //printf("Total sent: %lu\n", total_sent);
   }
 
   pifus_exit();

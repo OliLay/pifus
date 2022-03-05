@@ -183,6 +183,8 @@ a lot of data that needs to be copied, this should be set high. */
 #endif
 
 
+#define TCP_TMR_INTERVAL 1 //TODO: why, maybe reader? try non lwip reader maybe
+
 /* Controls if TCP should queue segments that arrive out of
    order. Define to 0 if your device is low on memory. */
 #define TCP_QUEUE_OOSEQ         1
