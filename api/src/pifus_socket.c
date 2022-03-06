@@ -15,7 +15,8 @@
 #include "utils/futex.h"
 #include "utils/log.h"
 
-struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
+pthread_mutex_t sockets_mutex;
+struct pifus_socket * sockets[MAX_SOCKETS_PER_APP];
 
 struct pifus_socket *map_socket_region(void);
 bool is_queue_full(struct pifus_socket *socket);
@@ -75,7 +76,10 @@ struct pifus_socket *map_socket_region(void) {
 
   struct pifus_socket *socket =
       (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
+
+  pthread_mutex_lock(&sockets_mutex);
   sockets[app_state->highest_socket_number] = socket;
+  pthread_mutex_unlock(&sockets_mutex);
 
   return socket;
 }

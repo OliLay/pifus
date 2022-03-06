@@ -8,7 +8,8 @@
 #include "pifus_ring_buffer.h"
 #include "pifus_shmem.h"
 
-extern struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
+extern pthread_mutex_t sockets_mutex;
+extern struct pifus_socket* sockets[MAX_SOCKETS_PER_APP];
 
 /**
  * @brief Creates a new pifus socket.
