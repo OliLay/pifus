@@ -16,6 +16,8 @@
 #include "init.h"
 #include "reader.h"
 
+#define BENCHMARK
+
 /* PCB for this connection */
 static struct tcp_pcb *pcb;
 
@@ -32,18 +34,25 @@ err_t reader_recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err) {
     } else {
       struct pbuf *next_pbuf = p;
 
+#ifndef BENCHMARK
       printf("Received packet: %iB total length, %iB pbuf length. Payload: \n",
              next_pbuf->tot_len, next_pbuf->len);
+#endif
 
       while (next_pbuf != NULL) {
+#ifndef BENCHMARK
         char str[next_pbuf->len];
         memcpy(str, next_pbuf->payload, next_pbuf->len);
 
         fwrite(str, sizeof(char), next_pbuf->len, stdout);
+#endif
+
         tcp_recved(tpcb, next_pbuf->len);
 
         if (next_pbuf->next == NULL) {
-            printf("--- End of pbuf chain!\n");
+#ifndef BENCHMARK
+          printf("--- End of pbuf chain!\n");
+#endif
         }
 
         next_pbuf = next_pbuf->next;
@@ -102,7 +111,7 @@ int main(int argc, char *argv[]) {
   LWIP_UNUSED_ARG(argc);
   LWIP_UNUSED_ARG(argv);
 
-  char* ip = "192.168.1.200";
+  char *ip = "192.168.1.200";
   if (argc > 1) {
     ip = argv[1];
   }

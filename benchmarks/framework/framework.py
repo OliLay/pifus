@@ -1,9 +1,12 @@
+from dataclasses import dataclass
 import subprocess
 import os
 import glob
+from pathlib import Path
 from typing import List, Optional
 
 BUILD_FOLDER = "build"
+RESULTS_FOLDER = "results"
 
 _running_processes: List[subprocess.Popen] = []
 
@@ -27,23 +30,39 @@ def start_process(path: str, args: str = "", tapif: Optional[int] = None) -> sub
     if tapif is not None:
         env["PRECONFIGURED_TAPIF"] = f"tap{tapif}"
 
-    cmd = [path] + args.split()
+    cmd = [os.path.abspath(path)] + args.split()
 
-    proc = subprocess.Popen(cmd, env=env)
+    Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
+
+    proc = subprocess.Popen(cmd, env=env, cwd=RESULTS_FOLDER)
     _running_processes.append(proc)
     return proc
 
 
-def compute_latency_from_stamps(first_file_path: str, second_file_path: str) -> List[int]:
-    latencies = []
-    with open(first_file_path) as first_file:
-        with open(second_file_path) as second_file:
+@dataclass
+class LatencyTimeTuple:
+    latency: int
+    time: int
+    type: str
+
+
+def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: str) -> List[LatencyTimeTuple]:
+    tuples: List[LatencyTimeTuple] = []
+    base_offset: Optional[int] = None
+
+    with open(os.path.join(RESULTS_FOLDER, first_file_path)) as first_file:
+        with open(os.path.join(RESULTS_FOLDER, second_file_path)) as second_file:
             for line in second_file:
                 first = int(first_file.readline())
                 second = int(line)
-                latencies.append(second - first)
 
-    return latencies
+                if base_offset is None:
+                    base_offset = first
+
+                tuples.append(LatencyTimeTuple(type=type,
+                                               latency=second - first, time=first - base_offset))
+
+    return tuples
 
 
 def kill_all_processes():
