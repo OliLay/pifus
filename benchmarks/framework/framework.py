@@ -54,14 +54,20 @@ def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: 
     with open(os.path.join(MEASUREMENT_FOLDER, first_file_path)) as first_file:
         with open(os.path.join(MEASUREMENT_FOLDER, second_file_path)) as second_file:
             for line in second_file:
-                first = int(first_file.readline())
+                first_line = first_file.readline()
+                if line == "" or first_file == "":
+                    print("Empty line")
+                    break
+
+
+                first = int(first_line)
                 second = int(line)
 
                 if base_offset is None:
                     base_offset = first
 
-                tuples.append(LatencyTimeTuple(type=type,
-                                               latency=second - first, time=first - base_offset))
+                tuples.append(LatencyTimeTuple(
+                    type=type, latency=second - first, time=first - base_offset))
 
     return tuples
 

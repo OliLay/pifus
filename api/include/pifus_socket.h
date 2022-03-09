@@ -1,15 +1,14 @@
 #ifndef PIFUS_SOCKET_H
 #define PIFUS_SOCKET_H
 
-#include "stddef.h"
-
 #include "pifus_constants.h"
 #include "pifus_ip.h"
 #include "pifus_ring_buffer.h"
 #include "pifus_shmem.h"
+#include "stddef.h"
 
 extern pthread_mutex_t sockets_mutex;
-extern struct pifus_socket* sockets[MAX_SOCKETS_PER_APP];
+extern struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
 
 /**
  * @brief Creates a new pifus socket.
@@ -92,6 +91,15 @@ bool pifus_socket_accept(struct pifus_socket *socket,
  * @return true upon success, false upon error.
  */
 bool pifus_socket_close(struct pifus_socket *socket);
+
+/**
+ * @brief Insert a NOP operation. This operation has no effect and is just used
+ * for benchmarking purposes.
+ *
+ * @param socket The socket that do a NOP.
+ * @return true upon success, false upon error.
+ */
+bool pifus_socket_nop(struct pifus_socket *socket);
 
 /**
  * @brief Dequeues the latest result received from the stack.

@@ -94,7 +94,7 @@ struct pifus_operation_result
 process_tx_op(struct pifus_internal_operation *internal_op) {
   struct pifus_operation_result operation_result;
 
-  if (internal_op->operation.code == NOP) {
+  if (internal_op->operation.code == NOP || internal_op->operation.code == CLIENT_NOP) {
     operation_result.result_code = PIFUS_OK;
   } else {
     if (is_tcp_operation(&internal_op->operation)) {

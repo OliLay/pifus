@@ -24,6 +24,7 @@
   C(UDP_SEND, 103)                                                             \
   C(UDP_RECV, 104)                                                             \
   C(CONNECTION_LOST, 200)                                                      \
+  C(CLIENT_NOP, 254)                                                           \
   C(NOP, 255)
 #define C(k, v) k = v,
 enum pifus_operation_code { OPERATIONS };
