@@ -24,7 +24,7 @@ def measure():
     framework.start_process(
         pifus_writer_path, args="192.168.1.203 -p 11337 -l LOW")
 
-    time.sleep(10)
+    time.sleep(200)
     framework.kill_all_processes()
 
 

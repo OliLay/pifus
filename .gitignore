@@ -1,6 +1,4 @@
 build
-results
-measurements
 .vscode
 *.csv
 *.pyc
