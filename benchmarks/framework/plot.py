@@ -1,33 +1,52 @@
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+import os
+from pathlib import Path
+from typing import List, Optional
 
-from framework.framework import LatencyTimeTuple
-from typing import List
+import pandas as pd # type: ignore[import]
+import seaborn as sns # type: ignore[import]
+import matplotlib.pyplot as plt # type: ignore[import]
+
+from framework.framework import LatencyTimeTuple, RESULTS_FOLDER
+
+sns.set_theme()
+pd.options.display.float_format = '{:.1f}'.format
+Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
+
+def set_legend(ax, legend_info: Optional[str]):
+    if legend_info:
+        ax.legend(title=legend_info)
+
+def plotify_path(path: str) -> str:
+    return os.path.join(RESULTS_FOLDER, path)
+
+def latency_dataframe(data: List[LatencyTimeTuple]) -> pd.DataFrame:
+    return pd.DataFrame([vars(data_point) for data_point in data])
 
 
-def load_latency_data(file: str) -> pd.DataFrame:
-    return index(pd.read_csv(file, names=["latency"]))
+def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Optional[str] = None,
+                    xlabel: Optional[str] = None, ylabel: Optional[str] = None):
+    df = latency_dataframe(data)
+
+    plt.figure(figsize=(12, 5))
+
+    # in the plot, show latency in us -> ms
+    df['latency'] = df['latency'].div(1000).round(2)
+
+    # in the plot, show time in us -> s
+    df['time'] = df['time'].div(1000000).round(2)
+
+    ax = sns.scatterplot(data=df, x="time", y="latency", hue="type",
+                         legend='full', s=10, edgecolor="none")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    set_legend(ax, legend_title)
+    plt.savefig(plotify_path(output), bbox_inches='tight')
 
 
-def index(df: pd.DataFrame) -> pd.DataFrame:
-    df['index'] = range(1, len(df) + 1)
-    return df
+def latency_dataframe_stats(data: List[LatencyTimeTuple], output: str):
+    df = latency_dataframe(data)
 
-
-def latency_scatter(data: List[LatencyTimeTuple], output: str):
-    df = pd.DataFrame([vars(data_point) for data_point in data])
-    print (df)
-
-    fig, ax = plt.subplots(figsize=(15,5))
-    marker_size = 8
-
-    sns.scatterplot(data=df, x="time", y="latency", hue="type", legend=True, s=marker_size)
-    #ax.set_title('dbus')
-   # ax.set_yscale('log')
-
-   # ticks = [50, 100, 200, 400, 800, 1600]
-   # plt.yticks(ticks, ticks)
-
-    plt.savefig(output, bbox_inches='tight')
-    plt.show()
+    with open(plotify_path(output), "w") as output_file:
+        print(df.groupby('type')["latency"].describe().unstack(
+            1), file=output_file)

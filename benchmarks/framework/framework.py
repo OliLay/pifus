@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 
 BUILD_FOLDER = "build"
+MEASUREMENT_FOLDER = "measurements"
 RESULTS_FOLDER = "results"
 
 _running_processes: List[subprocess.Popen] = []
@@ -32,9 +33,9 @@ def start_process(path: str, args: str = "", tapif: Optional[int] = None) -> sub
 
     cmd = [os.path.abspath(path)] + args.split()
 
-    Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
+    Path(MEASUREMENT_FOLDER).mkdir(parents=True, exist_ok=True)
 
-    proc = subprocess.Popen(cmd, env=env, cwd=RESULTS_FOLDER)
+    proc = subprocess.Popen(cmd, env=env, cwd=MEASUREMENT_FOLDER)
     _running_processes.append(proc)
     return proc
 
@@ -50,8 +51,8 @@ def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: 
     tuples: List[LatencyTimeTuple] = []
     base_offset: Optional[int] = None
 
-    with open(os.path.join(RESULTS_FOLDER, first_file_path)) as first_file:
-        with open(os.path.join(RESULTS_FOLDER, second_file_path)) as second_file:
+    with open(os.path.join(MEASUREMENT_FOLDER, first_file_path)) as first_file:
+        with open(os.path.join(MEASUREMENT_FOLDER, second_file_path)) as second_file:
             for line in second_file:
                 first = int(first_file.readline())
                 second = int(line)
