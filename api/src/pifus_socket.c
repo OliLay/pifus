@@ -362,16 +362,17 @@ bool pifus_socket_peek_result_code(struct pifus_socket *socket,
 
 void pifus_socket_wait(struct pifus_socket *socket,
                        struct pifus_operation_result *operation_result) {
-    while (true) {
-        if (dequeue_operation(socket, operation_result)) {
-            return;
-        }
+    futex_t shadow_cqueue = socket->cqueue_futex;
+    if (dequeue_operation(socket, operation_result)) {
+        return;
+    }
 
+    while (true) {
         /* can only use futexes + wait when in poll-mode,
         because in callback mode, we already use futex_waitv to
         invoke the callback */
         if (callback == NULL &&
-            futex_wait(&socket->cqueue_futex, socket->cqueue_futex) < 0) {
+            futex_wait(&socket->cqueue_futex, shadow_cqueue) < 0) {
             pifus_debug_log("pifus: futex_wait in socket_poll returned %s\n",
                             strerror(errno));
         }
