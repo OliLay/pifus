@@ -84,7 +84,6 @@ int main(int argc, char *argv[]) {
 
         struct pifus_operation_result result;
 
-        // TODO: fix not returning after some time.
         pifus_socket_wait(socket, &result);
         total_txed++;
 
