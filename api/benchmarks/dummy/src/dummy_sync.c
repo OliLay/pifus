@@ -86,13 +86,13 @@ int main(int argc, char *argv[]) {
     size_t total_tx = 0;
     while (true) {
         gettimeofday(&tp, NULL);
-        while (total_txed + 10 > total_tx && pifus_socket_nop(socket)) {
+        if (pifus_socket_nop(socket)) {
             total_tx++;
 
             if (total_tx > warmup_count) {
                 long int us = tp.tv_sec * 1000000 + tp.tv_usec;
                 write_csv(tx_filename, us);
-            }
+            }   
         }
 
         dequeue(socket);
