@@ -1,10 +1,18 @@
-from priorities import competing
-from dummy_stack import dummy
+import priorities.competing
+import dummy_stack.multiple_async
+import dummy_stack.multiple_sync
+import dummy_stack.single
 
 if __name__ == "__main__":
-    dummy.measure()
-    dummy.draw_plots()
+    dummy_stack.multiple_async.measure()
+    dummy_stack.multiple_async.draw_plots()
 
-    competing.measure()
-    competing.draw_plots()
+    dummy_stack.multiple_sync.measure()
+    dummy_stack.multiple_sync.draw_plots()
+
+    dummy_stack.single.measure()
+    dummy_stack.single.draw_plots()
+
+    priorities.competing.measure()
+    priorities.competing.draw_plots()
     exit(0)

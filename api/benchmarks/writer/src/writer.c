@@ -12,7 +12,6 @@
 #include "pifus.h"
 #include "pifus_ip.h"
 #include "pifus_socket.h"
-#include "writer.h"
 
 char *write_filename;
 char *written_filename;
@@ -30,14 +29,18 @@ void parse_args(int argc, char *argv[], char **reader_ip, uint16_t *port,
         exit(1);
     }
 
+    char* output_prefix = NULL;
     int opt;
-    while ((opt = getopt(argc, argv, "i:p:l:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:p:l:o:")) != -1) {
         switch (opt) {
             case 'p':
                 *port = atoi(optarg);
                 break;
             case 'l':
                 *prio = str_to_prio(optarg);
+                break;
+            case 'o':
+                output_prefix = optarg;
                 break;
             default:
                 fprintf(stderr, "Usage: %s [-pl] [IP]\n", argv[0]);
@@ -50,10 +53,14 @@ void parse_args(int argc, char *argv[], char **reader_ip, uint16_t *port,
         exit(1);
     }
 
-    if (!asprintf(&write_filename, "write%s.txt", prio_str(*prio))) {
+    if (output_prefix == NULL) {
+        output_prefix = "writer";
+    }
+
+    if (!asprintf(&write_filename, "%s_tx.txt", output_prefix)) {
         exit(1);
     }
-    if (!asprintf(&written_filename, "written%s.txt", prio_str(*prio))) {
+    if (!asprintf(&written_filename, "%s_txed.txt", output_prefix)) {
         exit(1);
     }
 
