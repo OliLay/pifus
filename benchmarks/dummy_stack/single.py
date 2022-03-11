@@ -12,7 +12,7 @@ def measure():
     framework.start_process(
         pifus_dummy_path, args=f"-l HIGH -o {file_prefix}")
 
-    time.sleep(15)
+    framework.wait()
     framework.kill_all_processes()
 
 

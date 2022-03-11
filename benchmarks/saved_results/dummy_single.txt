@@ -1,0 +1,10 @@
+       type
+count  High   4222034.0
+mean   High        14.5
+std    High       179.1
+min    High        10.0
+25%    High        13.0
+50%    High        13.0
+75%    High        16.0
+max    High    305977.0
+dtype: float64

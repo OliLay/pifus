@@ -1,13 +1,16 @@
-from dataclasses import dataclass
 import subprocess
 import os
 import glob
+import time
 from pathlib import Path
 from typing import List, Optional
+from dataclasses import dataclass
 
 BUILD_FOLDER = "build"
 MEASUREMENT_FOLDER = "measurements"
 RESULTS_FOLDER = "results"
+
+RUNTIME_SECONDS = 100
 
 _running_processes: List[subprocess.Popen] = []
 
@@ -15,23 +18,30 @@ _running_processes: List[subprocess.Popen] = []
 def get_binary_path(subpath: str) -> str:
     return f"../{BUILD_FOLDER}/{subpath}"
 
+def wait():
+    time.sleep(RUNTIME_SECONDS)
 
-def start_stack() -> subprocess.Popen:
+def start_stack(affinity: Optional[str]) -> subprocess.Popen:
     shm_files = glob.glob('/dev/shm/*')
     for file in shm_files:
         os.remove(file)
 
     stack_path = get_binary_path("lwip/custom/stack/stack")
-    return start_process(stack_path, tapif=0)
+    return start_process(stack_path, tapif=0, affinity=affinity)
 
 
-def start_process(path: str, args: str = "", tapif: Optional[int] = None) -> subprocess.Popen:
+def start_process(path: str, args: str = "", tapif: Optional[int] = None, affinity: Optional[str] = None) -> subprocess.Popen:
     env = {}
 
     if tapif is not None:
         env["PRECONFIGURED_TAPIF"] = f"tap{tapif}"
 
-    cmd = [os.path.abspath(path)] + args.split()
+    taskset = []
+    if affinity:
+        taskset = ["taskset", "-a", "-c", str(affinity)]
+
+    cmd = taskset + [os.path.abspath(path)] + args.split()
+    print (cmd)
 
     Path(MEASUREMENT_FOLDER).mkdir(parents=True, exist_ok=True)
 
@@ -54,9 +64,11 @@ def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: 
     with open(os.path.join(MEASUREMENT_FOLDER, first_file_path)) as first_file:
         with open(os.path.join(MEASUREMENT_FOLDER, second_file_path)) as second_file:
             for line in second_file:
+                if not line:
+                    break
+                
                 first_line = first_file.readline()
-                if not line or not first_line:
-                    print("Empty line")
+                if not first_line:
                     break
 
                 first = int(first_line)

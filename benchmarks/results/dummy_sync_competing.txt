@@ -1,0 +1,26 @@
+       type  
+count  High     2465025.0
+       Low      2533850.0
+       Medium   2478808.0
+mean   High          90.8
+       Low           93.3
+       Medium        96.8
+std    High        1200.3
+       Low         1227.9
+       Medium      1822.0
+min    High          10.0
+       Low           11.0
+       Medium        11.0
+25%    High          25.0
+       Low           25.0
+       Medium        25.0
+50%    High          27.0
+       Low           30.0
+       Medium        28.0
+75%    High          29.0
+       Low           39.0
+       Medium        35.0
+max    High      194007.0
+       Low       200549.0
+       Medium    596834.0
+dtype: float64

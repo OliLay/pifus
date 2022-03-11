@@ -5,18 +5,18 @@ file_prefix = "dummy_sync_competing"
 
 def measure():
     """Stack and three competing dummies with different prios."""
-    framework.start_stack()
+    framework.start_stack(affinity="0-1")
 
     pifus_dummy_path = framework.get_binary_path(
         "api/benchmarks/dummy/pifus_dummy_sync")
     framework.start_process(
-        pifus_dummy_path, args=f"-l HIGH -o {file_prefix}_HIGH")
+        pifus_dummy_path, args=f"-l HIGH -o {file_prefix}_HIGH", affinity="2-3")
     framework.start_process(
-        pifus_dummy_path, args=f"-l MEDIUM -o {file_prefix}_MEDIUM")
+        pifus_dummy_path, args=f"-l MEDIUM -o {file_prefix}_MEDIUM", affinity="2-3")
     framework.start_process(
-        pifus_dummy_path, args=f"-l LOW -o {file_prefix}_LOW")
+        pifus_dummy_path, args=f"-l LOW -o {file_prefix}_LOW", affinity="2-3")
 
-    time.sleep(15)
+    framework.wait()
     framework.kill_all_processes()
 
 
@@ -30,6 +30,6 @@ def draw_plots():
 
     data = low_data + medium_data + high_data
 
-    plot.latency_scatter(data, output=f"{file_prefix}.png", legend_title="Priority",
-                         xlabel="Time [s]", ylabel="Latency [us]", latency_unit="us")
+#    plot.latency_scatter(data, output=f"{file_prefix}.png", legend_title="Priority",
+ #                        xlabel="Time [s]", ylabel="Latency [us]", latency_unit="us")
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")
