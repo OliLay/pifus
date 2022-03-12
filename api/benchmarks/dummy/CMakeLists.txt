@@ -6,3 +6,6 @@ target_link_libraries(pifus_dummy_single pifus pthread)
 
 add_executable(pifus_dummy_sync ${CMAKE_CURRENT_LIST_DIR}/src/dummy_sync.c)
 target_link_libraries(pifus_dummy_sync pifus pthread)
+
+add_executable(pifus_dummy_async_multiple_sockets ${CMAKE_CURRENT_LIST_DIR}/src/dummy_async_multiple_sockets.c)
+target_link_libraries(pifus_dummy_async_multiple_sockets pifus pthread)

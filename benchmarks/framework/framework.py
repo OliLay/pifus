@@ -21,7 +21,7 @@ def get_binary_path(subpath: str) -> str:
 def wait():
     time.sleep(RUNTIME_SECONDS)
 
-def start_stack(affinity: Optional[str]) -> subprocess.Popen:
+def start_stack(affinity: Optional[str] = None) -> subprocess.Popen:
     shm_files = glob.glob('/dev/shm/*')
     for file in shm_files:
         os.remove(file)

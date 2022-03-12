@@ -11,6 +11,6 @@ err_t writer_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err);
 
 void writer_init(void);
 
-void writer_send_now(void *arg);
+void writer_send_now(void);
 
 #endif /* LWIP_WRITER_H */

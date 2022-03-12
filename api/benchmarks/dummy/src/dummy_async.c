@@ -87,7 +87,6 @@ int main(int argc, char *argv[]) {
     size_t total_tx = 0;
 
     while (true) {
-        // TODO: pin each dummy_async to 1 core, then yield makes more sense :)
         while (total_txed + 50 < total_tx) {
             // also schedule other threads and do not spin...
             pthread_yield();
