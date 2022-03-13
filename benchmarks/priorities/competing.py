@@ -5,13 +5,13 @@ file_prefix = "write_competing"
 
 def measure():
     """Three pifus writers (tap0), three lwIP readers (tap1-3)"""
-    framework.start_stack()
+    framework.start_stack(affinity="0-1")
 
     lwip_reader_path = framework.get_binary_path(
         "lwip/custom/benchmark/reader/reader")
-    framework.start_process(lwip_reader_path, args="192.168.1.201", tapif=1)
-    framework.start_process(lwip_reader_path, args="192.168.1.202", tapif=2)
-    framework.start_process(lwip_reader_path, args="192.168.1.203", tapif=3)
+    framework.start_process(lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2")
+    framework.start_process(lwip_reader_path, args="192.168.1.202", tapif=2, affinity="3")
+    framework.start_process(lwip_reader_path, args="192.168.1.203", tapif=3, affinity="4")
 
     # make sure readers are up
     time.sleep(1)
@@ -19,11 +19,11 @@ def measure():
     pifus_writer_path = framework.get_binary_path(
         "api/benchmarks/writer/pifus_writer")
     framework.start_process(
-        pifus_writer_path, args=f"192.168.1.201 -p 11337 -l HIGH -o {file_prefix}_HIGH")
+        pifus_writer_path, args=f"192.168.1.201 -p 11337 -l HIGH -o {file_prefix}_HIGH", affinity="5")
     framework.start_process(
-        pifus_writer_path, args=f"192.168.1.202 -p 11337 -l MEDIUM -o {file_prefix}_MEDIUM")
+        pifus_writer_path, args=f"192.168.1.202 -p 11337 -l MEDIUM -o {file_prefix}_MEDIUM", affinity="6")
     framework.start_process(
-        pifus_writer_path, args=f"192.168.1.203 -p 11337 -l LOW -o {file_prefix}_LOW")
+        pifus_writer_path, args=f"192.168.1.203 -p 11337 -l LOW -o {file_prefix}_LOW", affinity="7")
 
     framework.wait()
     framework.kill_all_processes()

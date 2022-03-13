@@ -10,8 +10,9 @@ if __name__ == "__main__":
     baseline.raw.measure()
     baseline.raw.draw_plots()
 
-    dummy_stack.sockets_async.measure()
-    dummy_stack.sockets_async.draw_plots()
+    # bad benchmark...
+   # dummy_stack.sockets_async.measure()
+    #dummy_stack.sockets_async.draw_plots()
 
     dummy_stack.multiple_async.measure()
     dummy_stack.multiple_async.draw_plots()

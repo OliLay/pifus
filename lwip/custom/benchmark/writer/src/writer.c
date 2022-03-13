@@ -33,8 +33,8 @@ size_t warmup_count = 10000;
 bool connected = false;
 
 void writer_handle_error(const char *error_str) {
-  printf("Error occurred: %s\n", error_str);
-  exit(1);
+ // printf("Error occurred: %s\n", error_str);
+  //exit(1);
 }
 
 void write_csv(char *filename, long value) {
@@ -43,7 +43,7 @@ void write_csv(char *filename, long value) {
   fclose(file);
 }
 
-int leftover_len = 0;
+u16_t leftover_len = 0;
 err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   len += leftover_len;
   while (len >= 50) {
@@ -59,6 +59,8 @@ err_t tcp_sent_callback(void *arg, struct tcp_pcb *tpcb, u16_t len) {
   }
 
   leftover_len = len;
+
+  return ERR_OK;
 }
 
 void writer_loop_callback(void) {
@@ -67,11 +69,13 @@ void writer_loop_callback(void) {
   }
 
   for (int i = 0; i < 100; i++) {
-    writer_send_now();
+    if (!writer_send_now()) {
+      return;
+    }
   }
 }
 
-void writer_send_now(void) {
+bool writer_send_now(void) {
   err_t result;
 
   char *loop_data;
@@ -83,9 +87,9 @@ void writer_send_now(void) {
   struct timeval tp;
   gettimeofday(&tp, NULL);
   result = tcp_write(pcb, loop_data, strlen(loop_data), 0);
-  total_tx++;
 
   if (result == ERR_OK) {
+    total_tx++;
     current_number++;
     if (current_number > 9) {
       current_number = 0;
@@ -101,8 +105,11 @@ void writer_send_now(void) {
       writer_handle_error("writer_send_now: tcp_output result");
     }
   } else {
-    writer_handle_error("writer_send_now: tcp_write result");
+  //  writer_handle_error("writer_send_now: tcp_write result");
+    return false;
   }
+
+  return true;
 }
 
 err_t writer_connected_callback(void *arg, struct tcp_pcb *tpcb, err_t err) {

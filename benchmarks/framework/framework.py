@@ -10,7 +10,7 @@ BUILD_FOLDER = "build"
 MEASUREMENT_FOLDER = "measurements"
 RESULTS_FOLDER = "results"
 
-RUNTIME_SECONDS = 100
+RUNTIME_SECONDS = 120
 
 _running_processes: List[subprocess.Popen] = []
 
