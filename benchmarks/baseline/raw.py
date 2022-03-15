@@ -17,7 +17,7 @@ def measure():
     pifus_writer_path = framework.get_binary_path(
         "api/benchmarks/writer/pifus_writer")
     framework.start_process(
-        pifus_writer_path, args=f"192.168.1.201 -p 11337 -l HIGH -o {file_prefix}_pifus", affinity="6-7")
+        pifus_writer_path, args=f"192.168.1.201 -p 11337 -l HIGH -o {file_prefix}_pifus", affinity="6")
 
     framework.wait()
     framework.kill_all_processes()

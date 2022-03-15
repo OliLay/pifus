@@ -22,7 +22,7 @@
 /* socket */
 #define SQUEUE_SIZE 10
 #define CQUEUE_SIZE 65535
-#define WRITE_QUEUE_SIZE 32
+#define WRITE_QUEUE_SIZE 32 // NOTE: take into consideration lwIP's MEMP_NUM_PBUF and TCP_SND_QUEUELEN
 #define RECV_QUEUE_SIZE 32
 #define RECV_BUFFER_SIZE 2048
 

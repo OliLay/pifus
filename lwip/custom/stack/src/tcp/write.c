@@ -15,10 +15,18 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
   void *data_ptr = shm_data_get_data_ptr(block);
 
   struct tcp_pcb *pcb = socket->pcb.tcp;
-  err_t result = tcp_write(pcb, data_ptr, block->size, 0x00);
 
   struct pifus_operation_result operation_result;
   operation_result.data.write = internal_op->operation.data.write;
+  if (pifus_write_queue_is_full(&socket->write_queue)) {
+      operation_result.result_code = PIFUS_ERR;
+      pifus_log("pifus: Could not store write length in write_queue_buffer as "
+                "it is full!\n");
+      return operation_result;
+  }
+
+  err_t result = tcp_write(pcb, data_ptr, block->size, 0x00);
+
   if (result == ERR_OK) {
     pifus_debug_log("pifus: PIFUS -- *async* --> lwIP tcp_write succeeded!\n");
 
@@ -30,9 +38,8 @@ tx_tcp_write(struct pifus_internal_operation *internal_op) {
                               write_queue_entry)) {
       operation_result.result_code = PIFUS_ASYNC;
     } else {
-      operation_result.result_code = PIFUS_ERR;
-      pifus_log("pifus: Could not store write length in write_queue_buffer as "
-                "it is full!\n");
+      pifus_log("pifus: Sanity check fail, write queue should not be full...\n");
+      exit(1);
     }
 
     tcp_sent(pcb, &tcp_sent_callback);

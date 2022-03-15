@@ -82,11 +82,16 @@ void callback_func(struct pifus_socket *socket,
         struct timeval tp;
         gettimeofday(&tp, NULL);
         long int us = tp.tv_sec * 1000000 + tp.tv_usec;
-        write_csv(written_filename, us);
 
         struct pifus_operation_result result;
         pifus_socket_pop_result(socket, &result);
-        print_result(&result);
+
+        if (result.result_code == PIFUS_OK) {
+            write_csv(written_filename, us);
+        } else {
+            printf("This shouldn't happen, write returned error!\n");
+            exit(1);
+        }
 
         total_dequeued++;
     }
@@ -127,9 +132,8 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
 
-            while (total_dequeued + 50 < total_sent) {
-                // also schedule other threads and do not spin...
-                pthread_yield();
+            while (total_dequeued + WRITE_QUEUE_SIZE - 1 <= total_sent) {
+                // throttle, else benchmark gets falsified (as we're building a too large queue)
             }
 
             gettimeofday(&tp, NULL);
