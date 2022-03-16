@@ -31,5 +31,5 @@ def draw_plots():
     data = low_data + medium_data + high_data
 
     plot.latency_scatter(data, output=f"{file_prefix}.png", legend_title="Priority",
-                         xlabel="Time [s]", ylabel="Latency [us]", latency_unit="us")
+                         xlabel="Time [s]", ylabel="Latency [us]", latency_unit="us", latency_scale="log")
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")

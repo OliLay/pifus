@@ -21,5 +21,5 @@ def draw_plots():
         f"{file_prefix}_tx.txt", f"{file_prefix}_txed.txt", "High")
 
     plot.latency_scatter(data, output=f"{file_prefix}.png", legend_title="",
-                         xlabel="Time [s]", ylabel="Latency [us]", latency_unit="us")
+                         xlabel="Time [s]", ylabel="Latency [us]", latency_unit="us", latency_scale="log")
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")

@@ -27,7 +27,8 @@ def latency_dataframe(data: List[LatencyTimeTuple]) -> pd.DataFrame:
 
 
 def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Optional[str] = None,
-                    xlabel: Optional[str] = None, ylabel: Optional[str] = None, latency_unit: Optional[str] = "ms"):
+                    xlabel: Optional[str] = None, ylabel: Optional[str] = None, latency_unit: str = "ms",
+                    latency_scale: str = "linear"):
     df = latency_dataframe(data)
 
     plt.figure(figsize=(12, 5))
@@ -40,11 +41,16 @@ def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Opt
     df['time'] = df['time'].div(1000000).round(2)
 
     ax = sns.scatterplot(data=df, x="time", y="latency", hue="type",
-                         legend='full', s=10, edgecolor="none")
+                         legend='full', s=5, edgecolor="none", alpha=0.8)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
+    if latency_scale == "log":
+        ax.set(yscale="log")
+
     set_legend(ax, legend_title)
+    plt.legend(loc='upper right')
+
     plt.savefig(plotify_path(output), bbox_inches='tight')
 
 
