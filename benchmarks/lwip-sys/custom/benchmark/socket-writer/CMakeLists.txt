@@ -10,8 +10,8 @@ set (LWIP_INCLUDE_DIRS
 include(${LWIP_DIR}/src/Filelists.cmake)
 include(${LWIP_DIR}/contrib/ports/unix/Filelists.cmake)
 
-add_executable(socket_writer ${CMAKE_CURRENT_LIST_DIR}/socket_writer.c ${NEEDED_SOURCES})
-target_include_directories(socket_writer PRIVATE ${LWIP_INCLUDE_DIRS})
-target_compile_options(socket_writer PRIVATE ${LWIP_COMPILER_FLAGS})
-target_compile_definitions(socket_writer PRIVATE ${LWIP_DEFINITIONS} ${LWIP_MBEDTLS_DEFINITIONS})
-target_link_libraries(socket_writer ${LWIP_SANITIZER_LIBS} lwipcontribportunix lwipcore lwipmbedtls)
+add_executable(netconn_writer ${CMAKE_CURRENT_LIST_DIR}/netconn_writer.c ${NEEDED_SOURCES})
+target_include_directories(netconn_writer PRIVATE ${LWIP_INCLUDE_DIRS})
+target_compile_options(netconn_writer PRIVATE ${LWIP_COMPILER_FLAGS})
+target_compile_definitions(netconn_writer PRIVATE ${LWIP_DEFINITIONS} ${LWIP_MBEDTLS_DEFINITIONS})
+target_link_libraries(netconn_writer ${LWIP_SANITIZER_LIBS} lwipcontribportunix lwipcore lwipmbedtls)

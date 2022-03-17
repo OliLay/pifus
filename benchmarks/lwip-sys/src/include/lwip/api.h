@@ -283,6 +283,9 @@ struct netconn {
 #endif /* LWIP_TCP */
   /** A callback function that is informed about events for this netconn */
   netconn_callback callback;
+
+  // added for benchmark
+  int socket_num;
 };
 
 /** This vector type is passed to @ref netconn_write_vectors_partly to send
