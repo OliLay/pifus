@@ -7,10 +7,10 @@ import dummy_stack.multiple_sync
 import dummy_stack.single
 import dummy_stack.sockets_async
 import baseline.raw
-import baseline.socket
+import baseline.netconn
 
 modules = [
-    baseline.socket,
+    baseline.netconn,
     baseline.raw,
     dummy_stack.multiple_sync,
     dummy_stack.multiple_async,
