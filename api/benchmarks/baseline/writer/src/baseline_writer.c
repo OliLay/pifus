@@ -91,11 +91,19 @@ void callback_func(struct pifus_socket *socket,
     gettimeofday(&tp, NULL);
     long int us = tp.tv_sec * 1000000 + tp.tv_usec;
 
-    write_csv(wrappers[socket->identifier.socket_index - 1].txed_filename, us);
-  }
+    struct pifus_operation_result result;
+    pifus_socket_pop_result(socket, &result);
 
-  struct pifus_operation_result result;
-  pifus_socket_pop_result(socket, &result);
+    if (result.result_code != PIFUS_OK) {
+      printf("This should not happen, write did not return OK!\n");
+      exit(1);
+    }
+
+    write_csv(wrappers[socket->identifier.socket_index - 1].txed_filename, us);
+  } else {
+    struct pifus_operation_result result;
+    pifus_socket_pop_result(socket, &result);
+  }
 }
 
 int main(int argc, char *argv[]) {

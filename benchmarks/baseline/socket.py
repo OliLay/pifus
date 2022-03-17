@@ -7,7 +7,7 @@ amount_sockets = 8
 
 def measure():
     """One pifus writer (multiple sockets), one lwIP reader.
-    One socket writer (multiple sockets), one lwIP reader."""
+    One lwIP socket writer (multiple sockets), one lwIP reader."""
     framework.start_stack(affinity="0-1")
 
     lwip_reader_path = framework.get_binary_path(
@@ -32,8 +32,9 @@ def draw_plots():
 
     for index in range(0, amount_sockets):
         data += framework.ts_to_latency_time_tuple(
-            f"{file_prefix}_pifus_{index}_tx.txt", f"{file_prefix}_pifus_{index}_txed.txt", "pifus")
+            f"{file_prefix}_pifus_{index}_tx.txt", f"{file_prefix}_pifus_{index}_txed.txt", f"pifus{index}")
 
+    # TODO: calculate metric for each batch (e.g. mean)
     plot.latency_scatter(data, output=f"{file_prefix}.png",
                          legend_title="API", xlabel="Time [s]", ylabel="Latency [ms]")
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")

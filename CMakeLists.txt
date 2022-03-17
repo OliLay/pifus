@@ -20,5 +20,5 @@ set (API_SOURCES
     ${API_DIR}/src/utils/log.c
     )
 
-add_subdirectory(lwip)  # the lwIP stack (modified)
+add_subdirectory(lwip)  # the lwIP stack (modified), used in pifus
 add_subdirectory(api) # the client side API

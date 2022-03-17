@@ -7,19 +7,24 @@ import dummy_stack.multiple_sync
 import dummy_stack.single
 import dummy_stack.sockets_async
 import baseline.raw
+import baseline.socket
+
+modules = [
+    baseline.socket,
+    baseline.raw,
+    dummy_stack.multiple_sync,
+    dummy_stack.multiple_async,
+    dummy_stack.single,
+    priorities.competing
+]
 
 
 def measure():
-    baseline.raw.measure()
-    dummy_stack.multiple_async.measure()
-    dummy_stack.multiple_sync.measure()
-    dummy_stack.single.measure()
-    priorities.competing.measure()
+    for module in modules:
+        module.measure()
 
 
 def plot():
-    modules = [baseline.raw, dummy_stack.multiple_sync, dummy_stack.multiple_async,
-               dummy_stack.single, priorities.competing]
     processes: List[Process] = []
     for module in modules:
         process = Process(target=module.draw_plots, args=())
