@@ -17,6 +17,9 @@ struct socket_wrapper {
   struct pifus_socket *socket;
   char *tx_filename;
   char *txed_filename;
+  
+  volatile size_t total_sent;
+  volatile size_t total_dequeued;
 };
 
 struct socket_wrapper wrappers[1024];
@@ -100,6 +103,7 @@ void callback_func(struct pifus_socket *socket,
     }
 
     write_csv(wrappers[socket->identifier.socket_index - 1].txed_filename, us);
+    wrappers[socket->identifier.socket_index - 1].total_dequeued++;
   } else {
     struct pifus_operation_result result;
     pifus_socket_pop_result(socket, &result);
@@ -107,7 +111,7 @@ void callback_func(struct pifus_socket *socket,
 }
 
 int main(int argc, char *argv[]) {
-  printf("Starting pifus_dummy...\n");
+  printf("Starting pifus_baseline_writer...\n");
 
   parse_args(argc, argv);
 
@@ -133,13 +137,20 @@ int main(int argc, char *argv[]) {
   struct timeval tp;
   while (true) {
     for (int i = 0; i < number_of_sockets; i++) {
-      char *loop_data = "Predictable interface for a user space IP stack!#0";
+      if (!(wrappers[i].total_dequeued + WRITE_QUEUE_SIZE - 1 <= wrappers[i].total_sent)) {
+        // throttle, else benchmark gets falsified (as we're building a too
+        // large queue)
 
-      gettimeofday(&tp, NULL);
-      if (pifus_socket_write(wrappers[i].socket, loop_data,
-                             strlen(loop_data))) {
-        long int us = tp.tv_sec * 1000000 + tp.tv_usec;
-        write_csv(wrappers[i].tx_filename, us);
+        char *loop_data = "Predictable interface for a user space IP stack!#0";
+
+        gettimeofday(&tp, NULL);
+        if (pifus_socket_write(wrappers[i].socket, loop_data,
+                               strlen(loop_data))) {
+          long int us = tp.tv_sec * 1000000 + tp.tv_usec;
+          write_csv(wrappers[i].tx_filename, us);
+
+          wrappers[i].total_sent++;
+        }
       }
     }
   }

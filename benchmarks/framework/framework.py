@@ -15,8 +15,11 @@ RUNTIME_SECONDS = 120
 _running_processes: List[subprocess.Popen] = []
 
 
-def get_binary_path(subpath: str) -> str:
-    return f"../{BUILD_FOLDER}/{subpath}"
+def get_binary_path(subpath: str, benchmark_build = False) -> str:
+    if benchmark_build:
+        return f"lwip-sys/{BUILD_FOLDER}/{subpath}"   
+    else:
+        return f"../{BUILD_FOLDER}/{subpath}"
 
 def wait():
     time.sleep(RUNTIME_SECONDS)
