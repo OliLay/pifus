@@ -26,6 +26,23 @@ def latency_dataframe(data: List[LatencyTimeTuple]) -> pd.DataFrame:
     return pd.DataFrame([vars(data_point) for data_point in data])
 
 
+def lineplot(df: pd.DataFrame, output: str, legend_title: Optional[str] = None,
+             xlabel: Optional[str] = None, ylabel: Optional[str] = None, latency_unit: str = "ms"):
+    plt.figure(figsize=(12, 5))
+
+    if latency_unit == "ms":
+        # in the plot, show mean in us -> ms
+        df['Mean'] = df['Mean'].div(1000).round(2)
+
+    ax = sns.lineplot(data=df, x="Amount of sockets", y="Mean", hue="Type")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    set_legend(ax, legend_title)
+    plt.legend(loc='upper right')
+    plt.savefig(plotify_path(output), bbox_inches='tight')
+
+
 def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Optional[str] = None,
                     xlabel: Optional[str] = None, ylabel: Optional[str] = None, latency_unit: str = "ms",
                     latency_scale: str = "linear"):
@@ -52,6 +69,13 @@ def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Opt
     plt.legend(loc='upper right')
 
     plt.savefig(plotify_path(output), bbox_inches='tight')
+
+
+def print_latency_dataframe_stats(data: List[LatencyTimeTuple]):
+    df = latency_dataframe(data)
+
+    result = df.groupby('type')["latency"].describe().unstack(1)
+    print(result)
 
 
 def latency_dataframe_stats(data: List[LatencyTimeTuple], output: str):
