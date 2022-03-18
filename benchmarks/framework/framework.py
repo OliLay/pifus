@@ -25,7 +25,9 @@ def wait():
     time.sleep(RUNTIME_SECONDS)
 
 def remove_measurement_file(file: str):
-    os.remove(os.path.join(MEASUREMENT_FOLDER, file))
+    path = os.path.join(MEASUREMENT_FOLDER, file)
+    if os.path.exists(path):
+        os.remove(path)
 
 def start_stack(affinity: Optional[str] = None) -> subprocess.Popen:
     shm_files = glob.glob('/dev/shm/*')
@@ -66,6 +68,10 @@ class LatencyTimeTuple:
 def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: str) -> List[LatencyTimeTuple]:
     tuples: List[LatencyTimeTuple] = []
     base_offset: Optional[int] = None
+
+    if not os.path.exists(os.path.join(MEASUREMENT_FOLDER, second_file_path)):
+        print(f"Txed {second_file_path} not found!")
+        return []
 
     with open(os.path.join(MEASUREMENT_FOLDER, first_file_path)) as first_file:
         with open(os.path.join(MEASUREMENT_FOLDER, second_file_path)) as second_file:

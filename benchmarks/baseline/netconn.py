@@ -18,10 +18,9 @@ def start_pifus_bench(amount_sockets: int):
     time.sleep(1)
 
     pifus_writer_path = framework.get_binary_path(
-        "api/benchmarks/writer/pifus_writer")
-    for index in range(0, amount_sockets):
-        framework.start_process(pifus_writer_path,
-                                args=f"192.168.1.201 -p 11337 -o {file_prefix}_pifus_{index} -l HIGH")
+        "api/benchmarks/baseline/writer/pifus_baseline_writer")
+    framework.start_process(pifus_writer_path,
+                            args=f"192.168.1.201 -p 11337 -o {file_prefix}_pifus -c {amount_sockets}")
 
     framework.wait()
     framework.kill_all_processes()
@@ -51,7 +50,7 @@ def start_netconn_bench(amount_sockets: int):
 def measure():
     """X pifus writer (multiple sockets), one lwIP reader.
     X lwIP netconn writer (multiple sockets), one lwIP reader."""
-    amount_sockets = [1, 2, 4, 8]
+    amount_sockets = [1, 2, 4, 8, 16]
     mean_data = []
 
     for current_amount_sockets in amount_sockets:
