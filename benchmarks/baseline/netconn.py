@@ -1,16 +1,17 @@
 from framework import framework, plot
 import time
+import pandas as pd  # type: ignore[import]
 
 file_prefix = "baseline_netconn"
 
 
 def start_pifus_bench(amount_sockets: int):
-    framework.start_stack(affinity="0-2")
+    framework.start_stack(affinity="0")
 
     lwip_reader_path = framework.get_binary_path(
         "lwip/custom/benchmark/reader/reader")
     framework.start_process(
-        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="4")
+        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2")
 
     # make sure readers are up
     time.sleep(1)
@@ -19,8 +20,7 @@ def start_pifus_bench(amount_sockets: int):
         "api/benchmarks/baseline/writer/pifus_baseline_writer")
     framework.start_process(
         pifus_writer_path,
-        args=f"192.168.1.201 -p 11337 -o {file_prefix}_pifus -c {amount_sockets}",
-        affinity="6")
+        args=f"192.168.1.201 -p 11337 -o {file_prefix}_pifus -c {amount_sockets}", affinity="7")
 
     framework.wait()
     framework.kill_all_processes()
@@ -30,7 +30,7 @@ def start_netconn_bench(amount_sockets: int):
     lwip_reader_path = framework.get_binary_path(
         "lwip/custom/benchmark/reader/reader")
     framework.start_process(
-        lwip_reader_path, args="192.168.1.201", tapif=1)
+        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2")
 
     # make sure readers are up
     time.sleep(1)
@@ -38,7 +38,11 @@ def start_netconn_bench(amount_sockets: int):
     lwip_netconn_path = framework.get_binary_path(
         "custom/benchmark/netconn-writer/netconn_writer", benchmark_build=True)
     framework.start_process(
-        lwip_netconn_path, args=f"192.168.1.201 -p 11337 -o {file_prefix} -c {amount_sockets}", tapif=0)
+        lwip_netconn_path,
+        args=f"192.168.1.201 -p 11337 -o {file_prefix} -c {amount_sockets}",
+        tapif=0,
+        affinity="7"
+    )
 
     framework.wait()
     framework.kill_all_processes()
@@ -47,7 +51,8 @@ def start_netconn_bench(amount_sockets: int):
 def measure():
     """X pifus writer (multiple sockets), one lwIP reader.
     X lwIP netconn writer (multiple sockets), one lwIP reader."""
-    amount_sockets = [1, 2, 4, 8, 16, 32]
+    amount_sockets = [1, 2, 4, 8]
+    mean_data = []
 
     for current_amount_sockets in amount_sockets:
         start_pifus_bench(current_amount_sockets)
@@ -56,16 +61,38 @@ def measure():
         pifus_data = []
         netconn_data = []
         for index in range(0, current_amount_sockets):
+            pifus_tx_file = f"{file_prefix}_pifus_{index}_tx.txt"
+            pifus_txed_file = f"{file_prefix}_pifus_{index}_txed.txt"
             pifus_data += framework.ts_to_latency_time_tuple(
-                f"{file_prefix}_pifus_{index}_tx.txt", f"{file_prefix}_pifus_{index}_txed.txt", f"pifus")
+                pifus_tx_file, pifus_txed_file, "pifus")
+
+            netconn_tx_file = f"{file_prefix}_{index}_tx.txt"
+            netconn_txed_file = f"{file_prefix}_{index}_txed.txt"
             netconn_data += framework.ts_to_latency_time_tuple(
-                f"{file_prefix}_{index}_tx.txt", f"{file_prefix}_{index}_txed.txt", f"netconn")
+                netconn_tx_file, netconn_txed_file, "netconn")
 
-        plot.latency_dataframe_stats(pifus_data, output=f"{file_prefix}.txt")
-        plot.latency_dataframe_stats(netconn_data, output=f"{file_prefix}.txt")
+            # clean up for next runs
+            framework.remove_measurement_file(pifus_tx_file)
+            framework.remove_measurement_file(pifus_txed_file)
+            framework.remove_measurement_file(netconn_tx_file)
+            framework.remove_measurement_file(netconn_txed_file)
 
-        # TODO: delete previous measurements, then measure again.
-        # TODO: save mean or other metric, then make plot for all runs
+        print (f"netconn tx'ed {len(netconn_data)}, pifus tx'ed {len(pifus_data)}")
+
+        mean_data.append(["pifus", current_amount_sockets,
+                         plot.latency_dataframe(pifus_data)["latency"].mean()])
+        mean_data.append(["netconn", current_amount_sockets,
+                         plot.latency_dataframe(netconn_data)["latency"].mean()])
+        print(mean_data)
+
+    df = pd.DataFrame(mean_data, columns=["Type", "Amount of sockets", "Mean"])
+    df.to_csv("baseline_netconn.txt")
+    print(df)
+    #plot.latency_dataframe_stats(pifus_data, output=f"{file_prefix}.txt")
+    #plot.latency_dataframe_stats(netconn_data, output=f"{file_prefix}.txt")
+
+    # TODO: delete previous measurements, then measure again.
+    # TODO: save mean or other metric, then make plot for all runs
 
 
 def draw_plots():

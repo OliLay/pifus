@@ -24,6 +24,9 @@ def get_binary_path(subpath: str, benchmark_build = False) -> str:
 def wait():
     time.sleep(RUNTIME_SECONDS)
 
+def remove_measurement_file(file: str):
+    os.remove(os.path.join(MEASUREMENT_FOLDER, file))
+
 def start_stack(affinity: Optional[str] = None) -> subprocess.Popen:
     shm_files = glob.glob('/dev/shm/*')
     for file in shm_files:

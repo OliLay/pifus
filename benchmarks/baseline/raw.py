@@ -5,21 +5,20 @@ file_prefix = "baseline_raw"
 
 def measure():
     """One pifus writer, one lwIP reader."""
-    framework.start_stack(affinity="0-2")
+    framework.start_stack(affinity="0")
 
     lwip_reader_path = framework.get_binary_path(
         "lwip/custom/benchmark/reader/reader")
     framework.start_process(
-        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="4")
+        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2")
 
     # make sure readers are up
     time.sleep(1)
 
     pifus_writer_path = framework.get_binary_path(
         "api/benchmarks/writer/pifus_writer")
-    # TODO: use same affinity as for writer below, same for reader. (one CPU could have more interrupts than the other, etc.)
     framework.start_process(
-        pifus_writer_path, args=f"192.168.1.201 -p 11337 -l HIGH -o {file_prefix}_pifus", affinity="6")
+        pifus_writer_path, args=f"192.168.1.201 -p 11337 -l HIGH -o {file_prefix}_pifus", affinity="7")
 
     framework.wait()
     framework.kill_all_processes()

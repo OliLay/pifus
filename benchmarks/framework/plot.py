@@ -57,6 +57,7 @@ def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Opt
 def latency_dataframe_stats(data: List[LatencyTimeTuple], output: str):
     df = latency_dataframe(data)
 
+    result = df.groupby('type')["latency"].describe().unstack(1)
+    print(result)
     with open(plotify_path(output), "w") as output_file:
-        print(df.groupby('type')["latency"].describe().unstack(
-            1), file=output_file)
+        print(result, file=output_file)
