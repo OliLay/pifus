@@ -85,6 +85,7 @@ def measure():
         plot.print_latency_dataframe_stats(pifus_data)
         plot.print_latency_dataframe_stats(netconn_data)
 
+    # maybe also save stddev, 30%, etc.
     df = pd.DataFrame(mean_data, columns=["Type", "Amount of sockets", "Mean"])
     df.to_csv(f"{framework.MEASUREMENT_FOLDER}/{file_prefix}.txt")
     print(df)
@@ -93,6 +94,6 @@ def measure():
 def draw_plots():
     data = pd.read_csv(os.path.join(
         framework.MEASUREMENT_FOLDER, f"{file_prefix}.txt"))
-
+    # TODO: log scale x axis, maybe show points where the real data points are.
     plot.lineplot(data, output=f"{file_prefix}.png", legend_title="API",
                   xlabel="Amount of sockets", ylabel="Mean latency [us]", latency_unit="us")
