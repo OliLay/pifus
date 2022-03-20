@@ -50,7 +50,7 @@ def start_netconn_bench(amount_sockets: int):
 def measure():
     """X pifus writer (multiple sockets), one lwIP reader.
     X lwIP netconn writer (multiple sockets), one lwIP reader."""
-    amount_sockets = [1, 2, 4, 8, 16]
+    amount_sockets = [1, 2, 4, 8, 16, 32, 64, 120]
     mean_data = []
 
     for current_amount_sockets in amount_sockets:
@@ -94,6 +94,5 @@ def measure():
 def draw_plots():
     data = pd.read_csv(os.path.join(
         framework.MEASUREMENT_FOLDER, f"{file_prefix}.txt"))
-    # TODO: log scale x axis, maybe show points where the real data points are.
     plot.lineplot(data, output=f"{file_prefix}.png", legend_title="API",
-                  xlabel="Amount of sockets", ylabel="Mean latency [us]", latency_unit="us")
+                  xlabel="Amount of sockets", ylabel="Mean latency [ms]")

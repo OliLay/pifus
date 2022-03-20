@@ -147,14 +147,14 @@ a lot of data that needs to be copied, this should be set high. */
 /* The following four are used only with the sequential API and can be
    set to 0 if the application only will use the raw API. */
 /* MEMP_NUM_NETBUF: the number of struct netbufs. */
-#define MEMP_NUM_NETBUF         32
+#define MEMP_NUM_NETBUF         128
 /* MEMP_NUM_NETCONN: the number of struct netconns. */
-#define MEMP_NUM_NETCONN        32
+#define MEMP_NUM_NETCONN        128
 /* MEMP_NUM_TCPIP_MSG_*: the number of struct tcpip_msg, which is used
    for sequential API communication and incoming packets. Used in
    src/api/tcpip.c. */
-#define MEMP_NUM_TCPIP_MSG_API  32
-#define MEMP_NUM_TCPIP_MSG_INPKT 32
+#define MEMP_NUM_TCPIP_MSG_API  128
+#define MEMP_NUM_TCPIP_MSG_INPKT 128
 
 
 /* ---------- Pbuf options ---------- */

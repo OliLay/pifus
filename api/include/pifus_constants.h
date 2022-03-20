@@ -17,7 +17,7 @@
 
 /* app */
 #define MAX_APP_AMOUNT 100
-#define MAX_SOCKETS_PER_APP 100
+#define MAX_SOCKETS_PER_APP 127
 
 /* socket */
 #define SQUEUE_SIZE 10
@@ -31,7 +31,7 @@
 #define MAX_FULL_SND_BUF_ITERATIONS 64
 
 /* TX */
-#define TX_QUEUE_SIZE 32
+#define TX_QUEUE_SIZE 128
 #define TX_MAX_FUTEXES_PER_THREAD 128
 #define TX_MAX_PARALLEL_OPS_PER_SOCKET 10
 

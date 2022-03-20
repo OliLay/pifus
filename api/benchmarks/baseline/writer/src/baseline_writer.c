@@ -112,7 +112,6 @@ void callback_func(struct pifus_socket *socket,
 void* socket_thread(void *arg) {
     int i = *(int *)arg;
     struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP, PRIORITY_HIGH);
-    printf("Thread with %i has socket id %i\n", i, socket->identifier.socket_index);
 
     wrappers[i].socket = socket;
 
@@ -123,12 +122,18 @@ void* socket_thread(void *arg) {
 
     struct pifus_ip_addr remote_addr;
     ip_addr_from_string(reader_ip, &remote_addr);
+
     pifus_socket_connect(socket, remote_addr, port);
     pifus_socket_wait(socket, &operation_result);
 
+    while (operation_result.result_code != PIFUS_OK) {
+        pifus_socket_connect(socket, remote_addr, port);
+        pifus_socket_wait(socket, &operation_result);
+    }
+
     struct timeval tp;
     while (true) {
-        if (!(wrappers[i].total_dequeued + WRITE_QUEUE_SIZE - 1 <=
+        if (!(wrappers[i].total_dequeued + 5 - 1 <=
               wrappers[i].total_sent)) {
             // throttle, else benchmark gets falsified (as we're building a
             // too large queue)

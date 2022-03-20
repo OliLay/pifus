@@ -34,12 +34,16 @@ def lineplot(df: pd.DataFrame, output: str, legend_title: Optional[str] = None,
         # in the plot, show mean in us -> ms
         df['Mean'] = df['Mean'].div(1000).round(2)
 
-    ax = sns.lineplot(data=df, x="Amount of sockets", y="Mean", hue="Type")
+    ax = sns.lineplot(data=df, x="Amount of sockets", y="Mean", hue="Type", style="Type", markers=True, dashes=False)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
+    ax.set(xscale="log")
+    ticks = [1, 2, 4, 8, 16, 32, 64, 120]
+    plt.xticks(ticks, ticks)
+
     set_legend(ax, legend_title)
-    plt.legend(loc='upper right')
+    plt.legend(loc='upper left')
     plt.savefig(plotify_path(output), bbox_inches='tight')
 
 

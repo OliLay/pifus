@@ -29,7 +29,7 @@ void parse_args(int argc, char *argv[], char **reader_ip, uint16_t *port,
         exit(1);
     }
 
-    char* output_prefix = NULL;
+    char *output_prefix = NULL;
     int opt;
     while ((opt = getopt(argc, argv, "i:p:l:o:")) != -1) {
         switch (opt) {
@@ -133,7 +133,8 @@ int main(int argc, char *argv[]) {
             }
 
             while (total_dequeued + WRITE_QUEUE_SIZE - 1 <= total_sent) {
-                // throttle, else benchmark gets falsified (as we're building a too large queue)
+                // throttle, else benchmark gets falsified (as we're building a
+                // too large queue)
             }
 
             gettimeofday(&tp, NULL);

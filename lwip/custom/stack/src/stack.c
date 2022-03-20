@@ -101,7 +101,11 @@ process_tx_op(struct pifus_internal_operation *internal_op) {
       if (internal_op->socket->pcb.tcp == NULL) {
         // this has to happen in the main lwIP thread, as calling tcp_* funcs is
         // not safe in the TX thread
-        internal_op->socket->pcb.tcp = tcp_new();
+        struct tcp_pcb * pcb = tcp_new();
+        internal_op->socket->pcb.tcp = pcb;
+
+        // TODO: check if this has an impact on the other benchmarks
+        tcp_nagle_disable(pcb);
         tcp_arg(internal_op->socket->pcb.tcp, internal_op->socket);
       }
 

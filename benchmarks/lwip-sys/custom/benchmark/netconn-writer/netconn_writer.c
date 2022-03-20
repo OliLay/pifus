@@ -107,26 +107,28 @@ void callback(struct netconn *conn, enum netconn_evt evt, u16_t len) {
 
 void socket_thread(void *arg) {
     int i = *(int *)arg;
-
+    
     ip_addr_t *reader_addr = (ip_addr_t *)malloc(sizeof(ip_addr_t));
     ipaddr_aton("192.168.1.201", reader_addr);
 
     struct netconn *conn = netconn_new_with_callback(NETCONN_TCP, &callback);
 
-    if (netconn_bind(conn, NULL, 0) != ERR_OK) {
-        printf("Could not bind!\n");
+    err_t err = netconn_bind(conn, NULL, 0);
+    if (err != ERR_OK) {
+        printf("Could not bind, err is %i, i is %i\n", err, i);
         exit(1);
     }
 
-    if (netconn_connect(conn, reader_addr, port) != ERR_OK) {
-        printf("Could not connect!\n");
-        exit(1);
+    err = netconn_connect(conn, reader_addr, port);
+    while (err != ERR_OK) {
+        err = netconn_connect(conn, reader_addr, port);
     }
 
     // added so we can easily map to the wrappers
     conn->socket_num = i;
 
     wrappers[i].conn = conn;
+    tcp_nagle_disable(conn->pcb.tcp);
 
     struct timeval tp;
     size_t total_sent = 0;
@@ -134,7 +136,7 @@ void socket_thread(void *arg) {
         const char *loop_data =
             "Predictable interface for a user space IP stack!#0";
 
-        while (wrappers[i].total_dequeued + 32 - 1 <= total_sent) {
+        while (wrappers[i].total_dequeued + 5 - 1 <= total_sent) {
             // throttle, else benchmark gets falsified (as we're building a too
             // large queue)
         }
