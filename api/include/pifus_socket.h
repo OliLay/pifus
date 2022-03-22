@@ -11,7 +11,7 @@ extern pthread_mutex_t sockets_mutex;
 extern struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
 
 /**
- * @brief Creates a new pifus socket.
+ * @brief Creates a new pifus socket. Not thread-safe.
  *
  * @return Pointer to a pifus_socket
  */
