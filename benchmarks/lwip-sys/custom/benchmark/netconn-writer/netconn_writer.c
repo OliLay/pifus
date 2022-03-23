@@ -28,8 +28,6 @@ uint16_t number_of_sockets;
 uint16_t port;
 char *reader_ip;
 
-size_t warmup_count = 10000;
-
 void callback(struct netconn *conn, enum netconn_evt evt, u16_t len);
 
 void parse_args(int argc, char *argv[]) {
