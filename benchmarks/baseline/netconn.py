@@ -82,18 +82,31 @@ def measure():
             framework.remove_measurement_file(netconn_tx_file)
             framework.remove_measurement_file(netconn_txed_file)
 
+        pifus_df = plot.latency_dataframe(pifus_data)
         mean_data.append(
             [
                 "pifus",
                 current_amount_sockets,
-                plot.latency_dataframe(pifus_data)["latency"].mean(),
+                pifus_df["latency"].mean(),
+                pifus_df["latency"].median(),
+                pifus_df["latency"].min(),
+                pifus_df["latency"].max(),
+                pifus_df["latency"].quantile(0.75),
+                pifus_df["latency"].quantile(0.25),
             ]
         )
+
+        netconn_df = plot.latency_dataframe(netconn_data)
         mean_data.append(
             [
-                "netconn",
+                "lwip",
                 current_amount_sockets,
-                plot.latency_dataframe(netconn_data)["latency"].mean(),
+                netconn_df["latency"].mean(),
+                netconn_df["latency"].median(),
+                netconn_df["latency"].min(),
+                netconn_df["latency"].max(),
+                netconn_df["latency"].quantile(0.75),
+                netconn_df["latency"].quantile(0.25),
             ]
         )
 
@@ -102,7 +115,19 @@ def measure():
         plot.print_latency_dataframe_stats(netconn_data)
 
     # maybe also save stddev, 30%, etc.
-    df = pd.DataFrame(mean_data, columns=["Type", "Amount of sockets", "Mean"])
+    df = pd.DataFrame(
+        mean_data,
+        columns=[
+            "Type",
+            "Amount of sockets",
+            "Mean",
+            "Median",
+            "Min",
+            "Max",
+            "75%",
+            "25%",
+        ],
+    )
     df.to_csv(f"{framework.MEASUREMENT_FOLDER}/{file_prefix}.txt")
     print(df)
 

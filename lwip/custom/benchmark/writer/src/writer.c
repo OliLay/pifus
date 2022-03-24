@@ -68,7 +68,7 @@ void writer_loop_callback(void) {
         return;
     }
 
-    while (!(total_txed + 32 - 1 <= total_tx)) {
+    while (!(total_txed + 5 - 1 <= total_tx)) {
         // throttle, else benchmark gets falsified (as we're building a too
         // large queue)
         if (!writer_send_now()) {

@@ -68,7 +68,7 @@ struct pifus_socket {
 struct pifus_app {
   /* Gives index of highest socket. Used as futex for wake-up when new
    * socket is created */
-  socket_index_t highest_socket_number;
+  volatile socket_index_t highest_socket_number;
 };
 
 /**

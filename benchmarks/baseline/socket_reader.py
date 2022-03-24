@@ -65,7 +65,7 @@ def measure():
         start_lwip_bench(current_amount_sockets)
 
         pifus_data = []
-        netconn_data = []
+        lwip_data = []
         for index in range(0, current_amount_sockets):
             pifus_tx_file = f"{file_prefix}_pifus_{index}_tx.txt"
             pifus_txed_file = f"{file_prefix}_pifus_{index}_txed.txt"
@@ -77,17 +77,17 @@ def measure():
 
             print(f"{len(pifus_sock_data)} from sock")
 
-            netconn_tx_file = f"{file_prefix}_{index}_tx.txt"
-            netconn_txed_file = f"{file_prefix}_{index}_txed.txt"
-            netconn_data += framework.ts_to_latency_time_tuple(
-                netconn_tx_file, netconn_txed_file, "netconn", warmup_count=10
+            lwip_tx_file = f"{file_prefix}_{index}_tx.txt"
+            lwip_txed_file = f"{file_prefix}_{index}_txed.txt"
+            lwip_data += framework.ts_to_latency_time_tuple(
+                lwip_tx_file, lwip_txed_file, "netconn", warmup_count=10
             )
 
             # clean up for next runs
             framework.remove_measurement_file(pifus_tx_file)
             framework.remove_measurement_file(pifus_txed_file)
-            framework.remove_measurement_file(netconn_tx_file)
-            framework.remove_measurement_file(netconn_txed_file)
+            framework.remove_measurement_file(lwip_tx_file)
+            framework.remove_measurement_file(lwip_txed_file)
 
         pifus_df = plot.latency_dataframe(pifus_data)
         mean_data.append(
@@ -103,23 +103,23 @@ def measure():
             ]
         )
 
-        netconn_df = plot.latency_dataframe(netconn_data)
+        lwip_df = plot.latency_dataframe(lwip_data)
         mean_data.append(
             [
                 "lwip",
                 current_amount_sockets,
-                netconn_df["latency"].mean(),
-                netconn_df["latency"].median(),
-                netconn_df["latency"].min(),
-                netconn_df["latency"].max(),
-                netconn_df["latency"].quantile(0.75),
-                netconn_df["latency"].quantile(0.25),
+                lwip_df["latency"].mean(),
+                lwip_df["latency"].median(),
+                lwip_df["latency"].min(),
+                lwip_df["latency"].max(),
+                lwip_df["latency"].quantile(0.75),
+                lwip_df["latency"].quantile(0.25),
             ]
         )
 
         # just to see the data in the run
         plot.print_latency_dataframe_stats(pifus_data)
-        plot.print_latency_dataframe_stats(netconn_data)
+        plot.print_latency_dataframe_stats(lwip_data)
 
     df = pd.DataFrame(
         mean_data,

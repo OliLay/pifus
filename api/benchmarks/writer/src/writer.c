@@ -132,7 +132,7 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
 
-            while (total_dequeued + WRITE_QUEUE_SIZE - 1 <= total_sent) {
+            while (total_dequeued + 5 - 1 <= total_sent) {
                 // throttle, else benchmark gets falsified (as we're building a
                 // too large queue)
             }

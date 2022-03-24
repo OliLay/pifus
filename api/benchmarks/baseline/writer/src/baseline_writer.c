@@ -109,9 +109,15 @@ void callback_func(struct pifus_socket *socket,
     }
 }
 
+struct thread_arg {
+    struct pifus_socket* socket;
+    int i;
+};
+
 void* socket_thread(void *arg) {
-    struct pifus_socket *socket = (struct pifus_socket*) arg;
-    int i = socket->identifier.socket_index;
+    struct thread_arg *thread_arg = (struct thread_arg*) arg;
+    struct pifus_socket *socket = thread_arg->socket;
+    int i = thread_arg->i;
     wrappers[i].socket = socket;
 
     pifus_socket_bind(socket, PIFUS_IPV4_ADDR, 0);
@@ -163,7 +169,11 @@ int main(int argc, char *argv[]) {
         struct pifus_socket *socket = pifus_socket(PROTOCOL_TCP, PRIORITY_HIGH);
 
         pthread_t thread;
-        int err = pthread_create(&thread, NULL, &socket_thread, socket);
+
+        struct thread_arg* thread_arg = malloc(sizeof(struct thread_arg));
+        thread_arg->socket = socket;
+        thread_arg->i = i;
+        int err = pthread_create(&thread, NULL, &socket_thread, thread_arg);
     }
 
     printf("Looping!\n");

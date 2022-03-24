@@ -37,7 +37,7 @@ def measure():
 
     lwip_writer_path = framework.get_binary_path("lwip/custom/benchmark/writer/writer")
     framework.start_process(
-        lwip_writer_path, args=f"-o {file_prefix}_lwip", tapif=0, affinity="2"
+        lwip_writer_path, args=f"-o {file_prefix}_lwip", tapif=0, affinity="7"
     )
 
     framework.wait()
