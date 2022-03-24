@@ -12,12 +12,12 @@ import baseline.socket_reader
 
 modules = [
     baseline.socket_reader,
-    baseline.netconn,
-    baseline.raw,
-    dummy_stack.multiple_sync,
-    dummy_stack.multiple_async,
-    dummy_stack.single,
-    priorities.competing
+    # baseline.netconn,
+    # baseline.raw,
+    # dummy_stack.multiple_sync,
+    #  dummy_stack.multiple_async,
+    #  dummy_stack.single,
+    # priorities.competing
 ]
 
 

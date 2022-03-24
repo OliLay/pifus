@@ -10,27 +10,30 @@ BUILD_FOLDER = "build"
 MEASUREMENT_FOLDER = "measurements"
 RESULTS_FOLDER = "results"
 
-RUNTIME_SECONDS = 120
+RUNTIME_SECONDS = 30
 
 _running_processes: List[subprocess.Popen] = []
 
 
-def get_binary_path(subpath: str, benchmark_build = False) -> str:
+def get_binary_path(subpath: str, benchmark_build=False) -> str:
     if benchmark_build:
-        return f"lwip-sys/{BUILD_FOLDER}/{subpath}"   
+        return f"lwip-sys/{BUILD_FOLDER}/{subpath}"
     else:
         return f"../{BUILD_FOLDER}/{subpath}"
 
+
 def wait():
     time.sleep(RUNTIME_SECONDS)
+
 
 def remove_measurement_file(file: str):
     path = os.path.join(MEASUREMENT_FOLDER, file)
     if os.path.exists(path):
         os.remove(path)
 
+
 def start_stack(affinity: Optional[str] = None) -> subprocess.Popen:
-    shm_files = glob.glob('/dev/shm/*')
+    shm_files = glob.glob("/dev/shm/*")
     for file in shm_files:
         os.remove(file)
 
@@ -38,7 +41,12 @@ def start_stack(affinity: Optional[str] = None) -> subprocess.Popen:
     return start_process(stack_path, tapif=0, affinity=affinity)
 
 
-def start_process(path: str, args: str = "", tapif: Optional[int] = None, affinity: Optional[str] = None) -> subprocess.Popen:
+def start_process(
+    path: str,
+    args: str = "",
+    tapif: Optional[int] = None,
+    affinity: Optional[str] = None,
+) -> subprocess.Popen:
     env = {}
 
     if tapif is not None:
@@ -49,7 +57,7 @@ def start_process(path: str, args: str = "", tapif: Optional[int] = None, affini
         taskset = ["taskset", "-a", "-c", str(affinity)]
 
     cmd = taskset + [os.path.abspath(path)] + args.split()
-    print (cmd)
+    print(cmd)
 
     Path(MEASUREMENT_FOLDER).mkdir(parents=True, exist_ok=True)
 
@@ -65,7 +73,9 @@ class LatencyTimeTuple:
     type: str
 
 
-def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: str, warmup_count: int = 0) -> List[LatencyTimeTuple]:
+def ts_to_latency_time_tuple(
+    first_file_path: str, second_file_path: str, type: str, warmup_count: int = 0
+) -> List[LatencyTimeTuple]:
     tuples: List[LatencyTimeTuple] = []
     base_offset: Optional[int] = None
 
@@ -78,7 +88,7 @@ def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: 
             for line in second_file:
                 if not line:
                     break
-                
+
                 first_line = first_file.readline()
                 if not first_line:
                     break
@@ -90,8 +100,11 @@ def ts_to_latency_time_tuple(first_file_path: str, second_file_path: str, type: 
                     base_offset = first
 
                 if warmup_count == 0:
-                    tuples.append(LatencyTimeTuple(
-                        type=type, latency=second - first, time=first - base_offset))
+                    tuples.append(
+                        LatencyTimeTuple(
+                            type=type, latency=second - first, time=first - base_offset
+                        )
+                    )
                 else:
                     warmup_count -= 1
 

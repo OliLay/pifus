@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt  # type: ignore[import]
 from framework.framework import LatencyTimeTuple, RESULTS_FOLDER
 
 sns.set_theme()
-pd.options.display.float_format = '{:.1f}'.format
+pd.options.display.float_format = "{:.1f}".format
 Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
 
 
@@ -26,15 +26,48 @@ def latency_dataframe(data: List[LatencyTimeTuple]) -> pd.DataFrame:
     return pd.DataFrame([vars(data_point) for data_point in data])
 
 
-def lineplot(df: pd.DataFrame, output: str, legend_title: Optional[str] = None,
-             xlabel: Optional[str] = None, ylabel: Optional[str] = None, latency_unit: str = "ms"):
+def lineplot(
+    df: pd.DataFrame,
+    output: str,
+    legend_title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    latency_unit: str = "ms",
+    with_quartiles=False,
+):
     plt.figure(figsize=(12, 5))
 
     if latency_unit == "ms":
         # in the plot, show mean in us -> ms
-        df['Mean'] = df['Mean'].div(1000).round(2)
+        df["Mean"] = df["Mean"].div(1000).round(2)
 
-    ax = sns.lineplot(data=df, x="Amount of sockets", y="Mean", hue="Type", style="Type", markers=True, dashes=False)
+    ax = sns.lineplot(
+        data=df,
+        x="Amount of sockets",
+        y="Mean",
+        hue="Type",
+        style="Type",
+        markers=True,
+        dashes=False,
+    )
+    if with_quartiles:
+        ax.fill_between(
+            data=df.loc[df["Type"] == "pifus"],
+            x="Amount of sockets",
+            y1="25%",
+            y2="75%",
+            color="blue",
+            alpha=0.3,
+        )
+        ax.fill_between(
+            data=df.loc[df["Type"] == "lwip"],
+            x="Amount of sockets",
+            y1="25%",
+            y2="75%",
+            color="orange",
+            alpha=0.3,
+        )
+
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
@@ -43,26 +76,40 @@ def lineplot(df: pd.DataFrame, output: str, legend_title: Optional[str] = None,
     plt.xticks(ticks, ticks)
 
     set_legend(ax, legend_title)
-    plt.legend(loc='upper left')
-    plt.savefig(plotify_path(output), bbox_inches='tight')
+    plt.legend(loc="upper left")
+    plt.savefig(plotify_path(output), bbox_inches="tight")
 
 
-def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Optional[str] = None,
-                    xlabel: Optional[str] = None, ylabel: Optional[str] = None, latency_unit: str = "ms",
-                    latency_scale: str = "linear"):
+def latency_scatter(
+    data: List[LatencyTimeTuple],
+    output: str,
+    legend_title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+    latency_unit: str = "ms",
+    latency_scale: str = "linear",
+):
     df = latency_dataframe(data)
 
     plt.figure(figsize=(12, 5))
 
     if latency_unit == "ms":
         # in the plot, show latency in us -> ms
-        df['latency'] = df['latency'].div(1000).round(2)
+        df["latency"] = df["latency"].div(1000).round(2)
 
     # in the plot, show time in us -> s
-    df['time'] = df['time'].div(1000000).round(2)
+    df["time"] = df["time"].div(1000000).round(2)
 
-    ax = sns.scatterplot(data=df, x="time", y="latency", hue="type",
-                         legend='full', s=5, edgecolor="none", alpha=0.8)
+    ax = sns.scatterplot(
+        data=df,
+        x="time",
+        y="latency",
+        hue="type",
+        legend="full",
+        s=5,
+        edgecolor="none",
+        alpha=0.8,
+    )
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
@@ -70,22 +117,22 @@ def latency_scatter(data: List[LatencyTimeTuple], output: str, legend_title: Opt
         ax.set(yscale="log")
 
     set_legend(ax, legend_title)
-    plt.legend(loc='upper right')
+    plt.legend(loc="upper right")
 
-    plt.savefig(plotify_path(output), bbox_inches='tight')
+    plt.savefig(plotify_path(output), bbox_inches="tight")
 
 
 def print_latency_dataframe_stats(data: List[LatencyTimeTuple]):
     df = latency_dataframe(data)
 
-    result = df.groupby('type')["latency"].describe().unstack(1)
+    result = df.groupby("type")["latency"].describe().unstack(1)
     print(result)
 
 
 def latency_dataframe_stats(data: List[LatencyTimeTuple], output: str):
     df = latency_dataframe(data)
 
-    result = df.groupby('type')["latency"].describe().unstack(1)
+    result = df.groupby("type")["latency"].describe().unstack(1)
     print(result)
     with open(plotify_path(output), "w") as output_file:
         print(result, file=output_file)

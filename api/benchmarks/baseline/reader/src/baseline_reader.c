@@ -65,11 +65,11 @@ int main(int argc, char *argv[]) {
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  pifus_socket_listen(socket, 10);
+  pifus_socket_listen(socket, 120);
   pifus_socket_wait(socket, &operation_result);
   print_result(&operation_result);
 
-  pifus_socket_accept(socket, PRIORITY_HIGH);
+  pifus_socket_accept(socket, PRIORITY_MEDIUM);
 
   while (true) {
     for (int i = 1; i <= max_accepted_socket; i++) {

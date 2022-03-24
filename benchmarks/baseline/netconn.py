@@ -9,38 +9,42 @@ file_prefix = "baseline_netconn"
 def start_pifus_bench(amount_sockets: int):
     framework.start_stack(affinity="0")
 
-    lwip_reader_path = framework.get_binary_path(
-        "lwip/custom/benchmark/reader/reader")
+    lwip_reader_path = framework.get_binary_path("lwip/custom/benchmark/reader/reader")
     framework.start_process(
-        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2")
+        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2"
+    )
 
     # make sure readers are up
     time.sleep(1)
 
     pifus_writer_path = framework.get_binary_path(
-        "api/benchmarks/baseline/writer/pifus_baseline_writer")
-    framework.start_process(pifus_writer_path,
-                            args=f"192.168.1.201 -p 11337 -o {file_prefix}_pifus -c {amount_sockets}")
+        "api/benchmarks/baseline/writer/pifus_baseline_writer"
+    )
+    framework.start_process(
+        pifus_writer_path,
+        args=f"192.168.1.201 -p 11337 -o {file_prefix}_pifus -c {amount_sockets}",
+    )
 
     framework.wait()
     framework.kill_all_processes()
 
 
 def start_netconn_bench(amount_sockets: int):
-    lwip_reader_path = framework.get_binary_path(
-        "lwip/custom/benchmark/reader/reader")
+    lwip_reader_path = framework.get_binary_path("lwip/custom/benchmark/reader/reader")
     framework.start_process(
-        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2")
+        lwip_reader_path, args="192.168.1.201", tapif=1, affinity="2"
+    )
 
     # make sure readers are up
     time.sleep(1)
 
     lwip_netconn_path = framework.get_binary_path(
-        "custom/benchmark/netconn-writer/netconn_writer", benchmark_build=True)
+        "custom/benchmark/netconn-writer/netconn_writer", benchmark_build=True
+    )
     framework.start_process(
         lwip_netconn_path,
         args=f"192.168.1.201 -p 11337 -o {file_prefix} -c {amount_sockets}",
-        tapif=0
+        tapif=0,
     )
 
     framework.wait()
@@ -63,12 +67,14 @@ def measure():
             pifus_tx_file = f"{file_prefix}_pifus_{index}_tx.txt"
             pifus_txed_file = f"{file_prefix}_pifus_{index}_txed.txt"
             pifus_data += framework.ts_to_latency_time_tuple(
-                pifus_tx_file, pifus_txed_file, "pifus")
+                pifus_tx_file, pifus_txed_file, "pifus"
+            )
 
             netconn_tx_file = f"{file_prefix}_{index}_tx.txt"
             netconn_txed_file = f"{file_prefix}_{index}_txed.txt"
             netconn_data += framework.ts_to_latency_time_tuple(
-                netconn_tx_file, netconn_txed_file, "netconn")
+                netconn_tx_file, netconn_txed_file, "netconn"
+            )
 
             # clean up for next runs
             framework.remove_measurement_file(pifus_tx_file)
@@ -76,10 +82,20 @@ def measure():
             framework.remove_measurement_file(netconn_tx_file)
             framework.remove_measurement_file(netconn_txed_file)
 
-        mean_data.append(["pifus", current_amount_sockets,
-                         plot.latency_dataframe(pifus_data)["latency"].mean()])
-        mean_data.append(["netconn", current_amount_sockets,
-                         plot.latency_dataframe(netconn_data)["latency"].mean()])
+        mean_data.append(
+            [
+                "pifus",
+                current_amount_sockets,
+                plot.latency_dataframe(pifus_data)["latency"].mean(),
+            ]
+        )
+        mean_data.append(
+            [
+                "netconn",
+                current_amount_sockets,
+                plot.latency_dataframe(netconn_data)["latency"].mean(),
+            ]
+        )
 
         # just to see the data in the run
         plot.print_latency_dataframe_stats(pifus_data)
@@ -92,7 +108,11 @@ def measure():
 
 
 def draw_plots():
-    data = pd.read_csv(os.path.join(
-        framework.MEASUREMENT_FOLDER, f"{file_prefix}.txt"))
-    plot.lineplot(data, output=f"{file_prefix}.png", legend_title="API",
-                  xlabel="Amount of sockets", ylabel="Mean latency [ms]")
+    data = pd.read_csv(os.path.join(framework.MEASUREMENT_FOLDER, f"{file_prefix}.txt"))
+    plot.lineplot(
+        data,
+        output=f"{file_prefix}.png",
+        legend_title="API",
+        xlabel="Amount of sockets",
+        ylabel="Mean latency [ms]",
+    )
