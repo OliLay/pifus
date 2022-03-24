@@ -27,6 +27,7 @@ struct socket_wrapper wrappers[1024];
 uint16_t number_of_sockets;
 uint16_t port;
 char *reader_ip;
+const char *own_ip;
 
 void callback(struct netconn *conn, enum netconn_evt evt, u16_t len);
 
@@ -38,7 +39,7 @@ void parse_args(int argc, char *argv[]) {
 
     const char *output_prefix = NULL;
     int opt;
-    while ((opt = getopt(argc, argv, "c:o:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "c:o:p:a:")) != -1) {
         switch (opt) {
             case 'p':
                 port = atoi(optarg);
@@ -48,6 +49,9 @@ void parse_args(int argc, char *argv[]) {
                 break;
             case 'o':
                 output_prefix = optarg;
+                break;
+            case 'a':
+                own_ip = optarg;
                 break;
             default:
                 fprintf(stderr, "Usage: %s [-c, -p, -o]\n", argv[0]);
@@ -69,6 +73,9 @@ void parse_args(int argc, char *argv[]) {
         exit(1);
     }
 
+    if (own_ip == NULL) {
+        own_ip = "192.168.1.200";
+    }
     reader_ip = argv[optind];
 
     for (int i = 0; i < number_of_sockets; i++) {
@@ -107,7 +114,7 @@ void socket_thread(void *arg) {
     int i = *(int *)arg;
     
     ip_addr_t *reader_addr = (ip_addr_t *)malloc(sizeof(ip_addr_t));
-    ipaddr_aton("192.168.1.201", reader_addr);
+    ipaddr_aton(reader_ip, reader_addr);
 
     struct netconn *conn = netconn_new_with_callback(NETCONN_TCP, &callback);
 
@@ -161,7 +168,7 @@ void start(void) {
 int main(int argc, char *argv[]) {
     parse_args(argc, argv);
 
-    run_lwip_sys(&start, "192.168.1.200", "192.168.1.1", "255.255.255.0");
+    run_lwip_sys(&start, own_ip, "192.168.1.1", "255.255.255.0");
 
     return 0;
 }

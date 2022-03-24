@@ -123,7 +123,6 @@ void handle_new_cqueue_entry(struct pifus_socket *socket) {
 }
 
 uint8_t fill_sockets_waitv(void) {
-    pthread_mutex_lock(&sockets_mutex);
     uint8_t current_amount_futexes = 0;
     for (socket_index_t socket_index = 1;
          socket_index <= app_state->highest_socket_number; socket_index++) {
@@ -146,7 +145,6 @@ uint8_t fill_sockets_waitv(void) {
         }
     }
 
-    pthread_mutex_unlock(&sockets_mutex);
     return current_amount_futexes;
 }
 

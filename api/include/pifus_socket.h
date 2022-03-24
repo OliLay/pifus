@@ -7,7 +7,6 @@
 #include "pifus_shmem.h"
 #include "stddef.h"
 
-extern pthread_mutex_t sockets_mutex;
 extern struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
 
 /**
@@ -74,7 +73,6 @@ bool pifus_socket_listen(struct pifus_socket *socket, uint8_t backlog_size);
  * @brief Accept connection on a socket.
  *
  * @param socket The socket where a connection should be accepted on.
- * grow
  * @param accepted_sockets_priority What kind of priority the accepted sockets
  * should have.
  * @return true upon success, false upon error.

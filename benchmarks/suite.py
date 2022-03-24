@@ -8,8 +8,10 @@ import dummy_stack.single
 import dummy_stack.sockets_async
 import baseline.raw
 import baseline.netconn
+import baseline.socket_reader
 
 modules = [
+    baseline.socket_reader,
     baseline.netconn,
     baseline.raw,
     dummy_stack.multiple_sync,

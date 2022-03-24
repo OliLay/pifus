@@ -16,7 +16,6 @@
 #include "utils/futex.h"
 #include "utils/log.h"
 
-pthread_mutex_t sockets_mutex;
 struct pifus_socket *sockets[MAX_SOCKETS_PER_APP];
 
 struct pifus_socket *map_socket_region(void);
@@ -63,24 +62,28 @@ bool is_queue_full(struct pifus_socket *socket) {
 }
 
 struct pifus_socket *map_socket_region(void) {
-    app_state->highest_socket_number++;
     char *shm_name;
 
     if (asprintf(&shm_name, "%s%s%u", app_shm_name, SHM_SOCKET_NAME_PREFIX,
-                 app_state->highest_socket_number) < 0) {
+                 app_state->highest_socket_number + 1) < 0) {
         pifus_log("pifus: error when calling asprintf\n");
     };
 
     int fd = shm_open_region(shm_name, true);
+
+    if (fd < 0) {
+        pifus_log("Could not open region '%s'\n", shm_name);
+        exit(1);
+    }
 
     free(shm_name);
 
     struct pifus_socket *socket =
         (struct pifus_socket *)shm_map_region(fd, SHM_SOCKET_SIZE, true);
 
-    pthread_mutex_lock(&sockets_mutex);
-    sockets[app_state->highest_socket_number] = socket;
-    pthread_mutex_unlock(&sockets_mutex);
+    sockets[app_state->highest_socket_number + 1] = socket;
+
+    app_state->highest_socket_number++;
 
     return socket;
 }

@@ -32,7 +32,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
   struct pifus_socket *socket = arg;
 
   if (socket == NULL) {
-    pifus_log("pifus: Error, no socket associated to recv() call. Can happen "
+    pifus_debug_log("pifus: Error, no socket associated to recv() call. Can happen "
               "with fast accept() and then immediate write().\n");
     return ERR_MEM;
   }
@@ -164,7 +164,7 @@ err_t tcp_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pbuf *p,
 
         if (bytes_copied < len_next_pbuf) {
           // buffer full
-          pifus_log(
+          pifus_debug_log(
               "pifus: recv buffer full for (%u/%u). Discarding additional "
               "data. (%u bytes)\n",
               socket->identifier.app_index, socket->identifier.socket_index,
