@@ -106,7 +106,7 @@ def measure():
         lwip_df = plot.latency_dataframe(lwip_data)
         mean_data.append(
             [
-                "lwip",
+                "lwIP select",
                 current_amount_sockets,
                 lwip_df["latency"].mean(),
                 lwip_df["latency"].median(),
@@ -147,5 +147,5 @@ def draw_plots():
         xlabel="Amount of sockets",
         ylabel="Mean latency [us]",
         latency_unit="us",
-        with_quartiles=True,
+        quartile_types=("pifus", "lwIP select"),
     )

@@ -99,7 +99,7 @@ def measure():
         netconn_df = plot.latency_dataframe(netconn_data)
         mean_data.append(
             [
-                "lwip",
+                "lwIP netconn",
                 current_amount_sockets,
                 netconn_df["latency"].mean(),
                 netconn_df["latency"].median(),
@@ -114,7 +114,6 @@ def measure():
         plot.print_latency_dataframe_stats(pifus_data)
         plot.print_latency_dataframe_stats(netconn_data)
 
-    # maybe also save stddev, 30%, etc.
     df = pd.DataFrame(
         mean_data,
         columns=[
@@ -140,4 +139,5 @@ def draw_plots():
         legend_title="API",
         xlabel="Amount of sockets",
         ylabel="Mean latency [ms]",
+        quartile_types=("pifus", "lwIP netconn"),
     )

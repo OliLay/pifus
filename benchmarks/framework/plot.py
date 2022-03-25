@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import pandas as pd  # type: ignore[import]
 import seaborn as sns  # type: ignore[import]
@@ -29,17 +29,19 @@ def latency_dataframe(data: List[LatencyTimeTuple]) -> pd.DataFrame:
 def lineplot(
     df: pd.DataFrame,
     output: str,
+    latency_unit: str = "ms",
     legend_title: Optional[str] = None,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
-    latency_unit: str = "ms",
-    with_quartiles=False,
+    quartile_types: Optional[Tuple[str, str]] = None,
 ):
     plt.figure(figsize=(12, 5))
 
     if latency_unit == "ms":
         # in the plot, show mean in us -> ms
         df["Mean"] = df["Mean"].div(1000).round(2)
+        df["25%"] = df["25%"].div(1000).round(2)
+        df["75%"] = df["75%"].div(1000).round(2)
 
     ax = sns.lineplot(
         data=df,
@@ -50,9 +52,9 @@ def lineplot(
         markers=True,
         dashes=False,
     )
-    if with_quartiles:
+    if quartile_types is not None:
         ax.fill_between(
-            data=df.loc[df["Type"] == "pifus"],
+            data=df.loc[df["Type"] == quartile_types[0]],
             x="Amount of sockets",
             y1="25%",
             y2="75%",
@@ -60,7 +62,7 @@ def lineplot(
             alpha=0.3,
         )
         ax.fill_between(
-            data=df.loc[df["Type"] == "lwip"],
+            data=df.loc[df["Type"] == quartile_types[1]],
             x="Amount of sockets",
             y1="25%",
             y2="75%",
