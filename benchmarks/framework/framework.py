@@ -113,5 +113,8 @@ def ts_to_latency_time_tuple(
 
 def kill_all_processes():
     for proc in _running_processes:
-        proc.kill()
+        proc.terminate()
+
     _running_processes.clear()
+    # make sure all files are written
+    time.sleep(1)

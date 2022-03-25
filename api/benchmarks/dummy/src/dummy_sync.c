@@ -12,12 +12,10 @@
 #include "pifus.h"
 #include "pifus_ip.h"
 #include "pifus_socket.h"
-
-char *tx_filename;
-char *txed_filename;
+#include "csv_writer.h"
 
 size_t total_txed;
-size_t warmup_count = 10000;
+size_t warmup_count = 1000;
 
 void parse_args(int argc, char *argv[], enum pifus_priority *prio) {
     if (argc < 2) {
@@ -53,12 +51,6 @@ void parse_args(int argc, char *argv[], enum pifus_priority *prio) {
     }
 }
 
-void write_csv(char *filename, long value) {
-    FILE *file = fopen(filename, "a");
-    fprintf(file, "%li\n", value);
-    fclose(file);
-}
-
 void dequeue(struct pifus_socket* socket) {
     struct pifus_operation_result result;
     while (pifus_socket_pop_result(socket, &result)) {
@@ -67,12 +59,14 @@ void dequeue(struct pifus_socket* socket) {
             struct timeval tp;
             gettimeofday(&tp, NULL);
             long int us = tp.tv_sec * 1000000 + tp.tv_usec;
-            write_csv(txed_filename, us);
+            txed_stamps[txed_index] = us;
+            txed_index++;
         }
     }
 }
 
 int main(int argc, char *argv[]) {
+    csv_writer_init();
     printf("Starting pifus_dummy...\n");
 
     enum pifus_priority prio = PRIORITY_MEDIUM;
@@ -91,7 +85,8 @@ int main(int argc, char *argv[]) {
 
             if (total_tx > warmup_count) {
                 long int us = tp.tv_sec * 1000000 + tp.tv_usec;
-                write_csv(tx_filename, us);
+                tx_stamps[tx_index] = us;
+                tx_index++;
             }   
         }
 

@@ -1,10 +1,10 @@
        type
-count  High   1291941.0
-mean   High        13.3
-std    High         6.2
-min    High         9.0
-25%    High        11.0
-50%    High        12.0
-75%    High        15.0
-max    High      1458.0
+count  High   2200736.0
+mean   High        13.6
+std    High         3.1
+min    High         6.0
+25%    High        12.0
+50%    High        13.0
+75%    High        14.0
+max    High      1261.0
 dtype: float64
