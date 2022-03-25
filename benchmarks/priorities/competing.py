@@ -61,6 +61,8 @@ def draw_plots():
         output=f"{file_prefix}.png",
         legend_title="Priority",
         xlabel="Time [s]",
-        ylabel="Latency [ms]",
+        ylabel="Latency [us]",
+        latency_scale="log",
+        latency_unit="us"
     )
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")
