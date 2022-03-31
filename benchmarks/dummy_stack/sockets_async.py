@@ -31,7 +31,7 @@ def draw_plots():
 
     plot.latency_scatter(
         data,
-        output=f"{file_prefix}.png",
+        output=file_prefix,
         legend_title="Priority",
         xlabel="Time [s]",
         ylabel="Latency [us]",

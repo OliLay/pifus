@@ -142,7 +142,7 @@ def draw_plots():
     data = pd.read_csv(os.path.join(framework.MEASUREMENT_FOLDER, f"{file_prefix}.txt"))
     plot.lineplot(
         data,
-        output=f"{file_prefix}.png",
+        output=file_prefix,
         legend_title="API",
         xlabel="Amount of sockets",
         ylabel="Mean latency [us]",

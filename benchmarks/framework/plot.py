@@ -79,7 +79,8 @@ def lineplot(
 
     set_legend(ax, legend_title)
     plt.legend(loc="upper left")
-    plt.savefig(plotify_path(output), bbox_inches="tight")
+    plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight")
+    plt.savefig(f"{plotify_path(output)}.pgf", bbox_inches="tight")
 
 
 def latency_scatter(
@@ -121,7 +122,8 @@ def latency_scatter(
     set_legend(ax, legend_title)
     plt.legend(loc="upper right")
 
-    plt.savefig(plotify_path(output), bbox_inches="tight")
+    plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight")
+    plt.savefig(f"{plotify_path(output)}.pgf", bbox_inches="tight")
 
 
 def print_latency_dataframe_stats(data: List[LatencyTimeTuple]):
