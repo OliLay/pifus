@@ -12,6 +12,14 @@ sns.set_theme()
 pd.options.display.float_format = "{:.1f}".format
 Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
 
+rc_params = {
+    'font.family': 'serif',
+    'text.usetex': True,
+    'pgf.rcfonts': False,
+    'pgf.texsystem' : 'pdflatex'
+}
+plt.rcParams.update(rc_params)
+
 
 def set_legend(ax, legend_info: Optional[str]):
     if legend_info:
