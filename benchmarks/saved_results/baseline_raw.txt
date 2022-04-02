@@ -1,18 +1,18 @@
        type    
-count  lwIP raw   754801.0
-       pifus      832426.0
-mean   lwIP raw      127.3
-       pifus          80.4
-std    lwIP raw       77.8
-       pifus         130.1
-min    lwIP raw       81.0
-       pifus          31.0
-25%    lwIP raw      103.0
-       pifus          62.0
-50%    lwIP raw      112.0
-       pifus          78.0
-75%    lwIP raw      142.0
-       pifus          86.0
-max    lwIP raw     6363.0
-       pifus       25768.0
+count  lwIP raw   1057830.0
+       pifus      1185550.0
+mean   lwIP raw        91.4
+       pifus           60.7
+std    lwIP raw        45.1
+       pifus           66.1
+min    lwIP raw        71.0
+       pifus           32.0
+25%    lwIP raw        84.0
+       pifus           47.0
+50%    lwIP raw        92.0
+       pifus           52.0
+75%    lwIP raw        94.0
+       pifus           77.0
+max    lwIP raw     15576.0
+       pifus        11849.0
 dtype: float64
