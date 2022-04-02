@@ -74,7 +74,11 @@ class LatencyTimeTuple:
 
 
 def ts_to_latency_time_tuple(
-    first_file_path: str, second_file_path: str, type: str, warmup_count: int = 0
+    first_file_path: str,
+    second_file_path: str,
+    type: str,
+    warmup_count: int = 0,
+    max_time: Optional[int] = None,
 ) -> List[LatencyTimeTuple]:
     tuples: List[LatencyTimeTuple] = []
     base_offset: Optional[int] = None
@@ -100,11 +104,13 @@ def ts_to_latency_time_tuple(
                     base_offset = first
 
                 if warmup_count == 0:
-                    tuples.append(
-                        LatencyTimeTuple(
-                            type=type, latency=second - first, time=first - base_offset
+                    time = first - base_offset
+                    if max_time is not None and time <= max_time:
+                        tuples.append(
+                            LatencyTimeTuple(
+                                type=type, latency=second - first, time=time
+                            )
                         )
-                    )
                 else:
                     warmup_count -= 1
 

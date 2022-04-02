@@ -6,17 +6,17 @@ import pandas as pd  # type: ignore[import]
 import seaborn as sns  # type: ignore[import]
 import matplotlib.pyplot as plt  # type: ignore[import]
 
-from framework.framework import LatencyTimeTuple, RESULTS_FOLDER
+from framework.framework import LatencyTimeTuple, RESULTS_FOLDER, RUNTIME_SECONDS
 
 sns.set_theme()
 pd.options.display.float_format = "{:.1f}".format
 Path(RESULTS_FOLDER).mkdir(parents=True, exist_ok=True)
 
 rc_params = {
-    'font.family': 'serif',
-    'text.usetex': True,
-    'pgf.rcfonts': False,
-    'pgf.texsystem' : 'pdflatex'
+    "font.family": "serif",
+    "text.usetex": True,
+    "pgf.rcfonts": False,
+    "pgf.texsystem": "pdflatex",
 }
 plt.rcParams.update(rc_params)
 
@@ -139,7 +139,7 @@ def latency_scatter(
         plt.legend(loc="upper right")
 
     if mean_line:
-        plt.axhline(y=df["latency"].mean(), color='r', linestyle='-')
+        plt.axhline(y=df["latency"].mean(), color="r", linestyle="-")
 
     plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight", dpi=300)
     plt.savefig(f"{plotify_path(output)}.pdf", bbox_inches="tight", dpi=300)

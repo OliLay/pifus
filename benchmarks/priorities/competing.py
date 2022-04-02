@@ -63,6 +63,6 @@ def draw_plots():
         xlabel="Time [s]",
         ylabel="Latency [us]",
         latency_scale="log",
-        latency_unit="us"
+        latency_unit="us",
     )
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")

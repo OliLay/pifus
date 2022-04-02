@@ -22,18 +22,29 @@ def measure():
     )
 
     framework.wait()
+    # wait additional 10secs
+    time.sleep(10)
     framework.kill_all_processes()
 
 
 def draw_plots():
     high_data = framework.ts_to_latency_time_tuple(
-        f"{file_prefix}_HIGH_tx.txt", f"{file_prefix}_HIGH_txed.txt", "High"
+        f"{file_prefix}_HIGH_tx.txt",
+        f"{file_prefix}_HIGH_txed.txt",
+        "High",
+        max_time=framework.RUNTIME_SECONDS * 1000000,
     )
     medium_data = framework.ts_to_latency_time_tuple(
-        f"{file_prefix}_MEDIUM_tx.txt", f"{file_prefix}_MEDIUM_txed.txt", "Medium"
+        f"{file_prefix}_MEDIUM_tx.txt",
+        f"{file_prefix}_MEDIUM_txed.txt",
+        "Medium",
+        max_time=framework.RUNTIME_SECONDS * 1000000,
     )
     low_data = framework.ts_to_latency_time_tuple(
-        f"{file_prefix}_LOW_tx.txt", f"{file_prefix}_LOW_txed.txt", "Low"
+        f"{file_prefix}_LOW_tx.txt",
+        f"{file_prefix}_LOW_txed.txt",
+        "Low",
+        max_time=framework.RUNTIME_SECONDS * 1000000,
     )
 
     data = low_data + medium_data + high_data
