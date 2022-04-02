@@ -87,7 +87,7 @@ def lineplot(
 
     set_legend(ax, legend_title)
     plt.legend(loc="upper left")
-    plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight")
+    plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight", dpi=300)
     plt.savefig(f"{plotify_path(output)}.pgf", bbox_inches="tight")
 
 
@@ -97,6 +97,7 @@ def latency_scatter(
     legend_title: Optional[str] = None,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
+    mean_line: bool = False,
     latency_unit: str = "ms",
     latency_scale: str = "linear",
 ):
@@ -111,15 +112,21 @@ def latency_scatter(
     # in the plot, show time in us -> s
     df["time"] = df["time"].div(1000000).round(2)
 
+    if legend_title is not None:
+        legend = "full"
+    else:
+        legend = None
+
     ax = sns.scatterplot(
         data=df,
         x="time",
         y="latency",
         hue="type",
-        legend="full",
+        legend=legend,
         s=5,
         edgecolor="none",
         alpha=0.8,
+        rasterized=True,
     )
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -127,11 +134,15 @@ def latency_scatter(
     if latency_scale == "log":
         ax.set(yscale="log")
 
-    set_legend(ax, legend_title)
-    plt.legend(loc="upper right")
+    if legend_title is not None:
+        set_legend(ax, legend_title)
+        plt.legend(loc="upper right")
 
-    plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight")
-    plt.savefig(f"{plotify_path(output)}.pgf", bbox_inches="tight")
+    if mean_line:
+        plt.axhline(y=df["latency"].mean(), color='r', linestyle='-')
+
+    plt.savefig(f"{plotify_path(output)}.png", bbox_inches="tight", dpi=300)
+    plt.savefig(f"{plotify_path(output)}.pdf", bbox_inches="tight", dpi=300)
 
 
 def print_latency_dataframe_stats(data: List[LatencyTimeTuple]):

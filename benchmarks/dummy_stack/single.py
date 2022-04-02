@@ -25,10 +25,11 @@ def draw_plots():
     plot.latency_scatter(
         data,
         output=file_prefix,
-        legend_title="",
+        legend_title=None,
         xlabel="Time [s]",
         ylabel="Latency [us]",
         latency_unit="us",
         latency_scale="log",
+        mean_line=True
     )
     plot.latency_dataframe_stats(data, output=f"{file_prefix}.txt")
