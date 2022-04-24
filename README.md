@@ -3,8 +3,7 @@
 pifus is an interface for the lwIP stack. 
 It is based on a completion I/O model and therefore allows async I/O using lwIP with an API similar to BSD sockets.
 pifus supports predictability features, such as setting priorities for sockets so that real-time traffic can be 
-prioritizes.
-Applications can use the pifus library to connect to lwIP.
+prioritized.
 
 ## Build
 ```bash
