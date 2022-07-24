@@ -9,6 +9,10 @@ prioritized.
 pifus furthermore allows multiple processes to use the lwIP stack 
 simultaenously.
 
+The main code contributions of pifus can be found in the `api` folder (contains the interface for the applications) and in the `lwip/custom` folder (contains the backend logic).
+
+The theoretical groundwork and benchmark results can be found in the Master Thesis located in the repository root.
+
 ## Build
 ```bash
 mkdir build && cd build
